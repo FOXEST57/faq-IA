@@ -1,0 +1,3 @@
+# Fichier requirements.txt pour le backend Flask
+Flask
+
