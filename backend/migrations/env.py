@@ -17,11 +17,22 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from app import db
+from models import db
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
+# Correction :
+# Si une ancienne migration est référencée, la supprimer pour repartir proprement
+script_location = config.get_main_option("script_location")
+# Nettoyage automatique des anciennes migrations pour éviter les références obsolètes
+versions_path = os.path.join(os.path.dirname(__file__), 'versions')
+if os.path.exists(versions_path):
+    for f in os.listdir(versions_path):
+        if f.endswith('.py'):
+            os.remove(os.path.join(versions_path, f))
+
 target_metadata = db.metadata
 
 # other values from the config, defined by the needs of env.py,
