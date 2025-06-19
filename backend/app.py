@@ -48,5 +48,9 @@ class AdminActionLog(db.Model):
 def hello():
     return "Hello, Flask!"
 
+@app.route('/api/hello')
+def hello_api():
+    return {"message": "Hello depuis Flask!"}
+
 if __name__ == '__main__':
     app.run(debug=True)
