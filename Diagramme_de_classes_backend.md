@@ -30,6 +30,63 @@ classDiagram
         +predict_visits()
     }
     
+    class User {
+        id: int
+        username: str
+        password_hash: str
+        is_admin: bool
+        created_at: datetime
+        <<CRUD, Authentification>>
+    }
+    
+    class FAQ {
+        id: int
+        question: str
+        answer: str
+        source: str  # 'IA' ou 'manuel'
+        created_by: User
+        created_at: datetime
+        updated_at: datetime
+        is_approved: bool
+        <<CRUD, Validation>>
+    }
+    
+    class PDFDocument {
+        id: int
+        filename: str
+        upload_date: datetime
+        description: str
+        <<Upload, Indexation>>
+    }
+    
+    class VisitLog {
+        id: int
+        ip_address: str
+        url: str
+        timestamp: datetime
+        user_agent: str
+        <<Logging>>
+    }
+    
+    class AdminActionLog {
+        id: int
+        admin_id: User
+        action: str
+        target_type: str
+        target_id: int
+        timestamp: datetime
+        <<Audit>>
+    }
+    
+    class PredictionModel {
+        id: int
+        model_name: str
+        model_path: str
+        last_trained: datetime
+        accuracy: float
+        <<ML, Prédiction>>
+    }
+    
     UserController --> FAQController
     AdminController --> AIService
     AdminController --> PredictionService

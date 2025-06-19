@@ -1,14 +1,32 @@
+# Modèle Merise condensé adapté à la structure réelle
+
 flowchart TD
-    A[Documents PDF] -->|Extraction| B(Traitement NLP)
-    B --> C{Base de Connaissances}
-    C --> D[(FAQ Générée)]
-    D --> E[Validation Admin]
-    E --> F[(FAQ Validée)]
+    PDFDocument[Documents PDF] -->|Extraction| NLP[Traitement NLP]
+    NLP --> KnowledgeBase[Base de Connaissances]
+    KnowledgeBase --> FAQGen[FAQ Générée]
+    FAQGen --> AdminValidation[Validation Admin]
+    AdminValidation --> FAQVal[FAQ Validée]
     
-    G[Visiteurs] -->|Consultation| F
-    G -->|Log| H[Analyse Visites]
-    H --> I[Prédictions ML]
+    Visitor[Visiteurs] -->|Consultation| FAQVal
+    Visitor -->|Log| VisitLog[Analyse Visites]
+    VisitLog --> Prediction[Prédictions ML]
     
-    J[Admin] -->|Gestion| F
-    J -->|Configuration| B
-    J -->|Monitoring| I
+    Admin[Admin] -->|Gestion| FAQVal
+    Admin -->|Configuration| NLP
+    Admin -->|Monitoring| Prediction
+    
+    subgraph BDD
+        User
+        FAQ
+        PDFDocument
+        VisitLog
+        AdminActionLog
+        PredictionModel
+    end
+
+    Admin -->|Actions| AdminActionLog
+    FAQVal -->|Création/Validation| Admin
+    FAQGen -->|Ajout| FAQ
+    PDFDocument -->|Indexation| KnowledgeBase
+    VisitLog -->|Stockage| BDD
+    Prediction -->|Stockage| PredictionModel

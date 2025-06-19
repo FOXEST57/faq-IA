@@ -1,10 +1,11 @@
 erDiagram
     USER ||--o{ FAQ_ENTRY : "crée/modifie"
+    USER ||--o{ ADMIN_ACTION_LOG : "effectue"
     USER {
         int id PK
         string username
         string password_hash
-        string role
+        bool is_admin
         datetime created_at
     }
     
@@ -22,18 +23,25 @@ erDiagram
     PDF_DOCUMENT {
         int id PK
         string filename
-        string filepath
-        int uploaded_by FK
-        datetime uploaded_at
-        text extracted_text
+        datetime upload_date
+        text description
     }
     
     VISIT_LOG {
         int id PK
         string ip_address
-        string page_visited
-        datetime visit_time
+        string url
+        datetime timestamp
         string user_agent
+    }
+    
+    ADMIN_ACTION_LOG {
+        int id PK
+        int admin_id FK
+        string action
+        string target_type
+        int target_id
+        datetime timestamp
     }
     
     PREDICTION_MODEL {
