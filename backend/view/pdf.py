@@ -4,6 +4,7 @@ from flask import Blueprint, request, jsonify
 import os
 from werkzeug.utils import secure_filename
 from models import db, PDFDocument
+import fitz  # PyMuPDF pour l'extraction de texte
 
 # Création d'un blueprint Flask pour la gestion des PDF
 pdf_bp = Blueprint('pdf', __name__)
@@ -60,3 +61,21 @@ def list_pdfs():
             'description': pdf.description
         } for pdf in pdfs
     ])
+
+# Route pour extraire le texte d'un PDF par son id
+@pdf_bp.route('/api/pdf/extract/<int:pdf_id>', methods=['GET'])
+def extract_pdf_text(pdf_id):
+    # Recherche le document PDF en base
+    pdf_doc = PDFDocument.query.get_or_404(pdf_id)
+    # Construit le chemin complet du fichier PDF
+    pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
+    # Vérifie que le fichier existe bien sur le disque
+    if not os.path.exists(pdf_path):
+        return jsonify({'error': 'Fichier PDF introuvable sur le serveur.'}), 404
+    # Ouvre le PDF et extrait le texte de chaque page
+    text = ""
+    with fitz.open(pdf_path) as doc:
+        for page in doc:
+            text += page.get_text()
+    # Retourne le texte extrait sous forme de JSON
+    return jsonify({'id': pdf_id, 'filename': pdf_doc.filename, 'text': text})
