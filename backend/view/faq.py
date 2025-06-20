@@ -48,13 +48,16 @@ def get_faq(faq_id):
         'updated_at': str(faq.updated_at) if faq.updated_at else None
     })
 
-@faq_bp.route('/api/faq/<int:faq_id>', methods=['PUT'])
+@faq_bp.route('/api/faq/<int:faq_id>', methods=['PUT', 'PATCH'])
 def update_faq(faq_id):
-    data = request.get_json()
     faq = FAQ.query.get_or_404(faq_id)
-    faq.question = data.get('question', faq.question)
-    faq.answer = data.get('answer', faq.answer)
-    faq.source = data.get('source', faq.source)
+    data = request.get_json()
+    if 'question' in data:
+        faq.question = data['question']
+    if 'answer' in data:
+        faq.answer = data['answer']
+    if 'source' in data:
+        faq.source = data['source']
     db.session.commit()
     return jsonify({
         'id': faq.id,

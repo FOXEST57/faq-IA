@@ -13,18 +13,6 @@ db.init_app(app)
 app.register_blueprint(hello_bp)
 app.register_blueprint(faq_bp)
 
-@app.route('/')
-def hello():
-    return "Hello, Flask!"
-
-@app.route('/test_db')
-def test_db():
-    try:
-        from models import FAQ
-        count = FAQ.query.count()
-        return f"Connexion OK. Nombre de FAQ : {count}"
-    except Exception as e:
-        return f"Erreur de connexion à la BDD : {e}"
 
 if __name__ == '__main__':
     app.run(debug=True)
