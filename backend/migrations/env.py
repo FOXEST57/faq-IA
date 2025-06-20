@@ -26,12 +26,6 @@ from models import db
 # Correction :
 # Si une ancienne migration est référencée, la supprimer pour repartir proprement
 script_location = config.get_main_option("script_location")
-# Nettoyage automatique des anciennes migrations pour éviter les références obsolètes
-versions_path = os.path.join(os.path.dirname(__file__), 'versions')
-if os.path.exists(versions_path):
-    for f in os.listdir(versions_path):
-        if f.endswith('.py'):
-            os.remove(os.path.join(versions_path, f))
 
 target_metadata = db.metadata
 
