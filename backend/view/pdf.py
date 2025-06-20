@@ -45,3 +45,18 @@ def upload_pdf():
     else:
         # Si le fichier n'est pas autorisé, retourne une erreur
         return jsonify({'error': 'Format de fichier non autorisé.'}), 400
+
+# Route pour lister les PDF uploadés
+@pdf_bp.route('/api/pdf', methods=['GET'])
+def list_pdfs():
+    # Récupère tous les documents PDF enregistrés en base
+    pdfs = PDFDocument.query.all()
+    # Retourne la liste des PDF sous forme de JSON
+    return jsonify([
+        {
+            'id': pdf.id,
+            'filename': pdf.filename,
+            'upload_date': str(pdf.upload_date) if pdf.upload_date else None,
+            'description': pdf.description
+        } for pdf in pdfs
+    ])
