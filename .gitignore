@@ -1,0 +1,90 @@
+# Ignorer les environnements virtuels Python
+venv/
+backend/venv/
+
+# Ignorer les fichiers de configuration d'IDE
+.idea/
+.vscode/
+
+# Ignorer les fichiers système
+.DS_Store
+Thumbs.db
+
+# Ignorer les fichiers de logs
+*.log
+
+# Ignorer les fichiers Python compilés
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignorer les fichiers de dépendances Python
+*.egg-info/
+dist/
+build/
+
+# Ignorer les fichiers node_modules
+frontend/node_modules/
+
+# Ignorer les fichiers de build frontend
+frontend/dist/
+frontend/build/
+
+# Ignorer les fichiers d'environnement
+.env
+.env.*
+
+# Ignorer les fichiers uploads
+backend/uploads/
+
+# Ignorer les fichiers coverage
+.coverage
+coverage/
+
+# Ignorer les fichiers de test
+*.spec.js
+*.test.js
+*.spec.ts
+*.test.ts
+
+# Ignorer les fichiers de cache
+.cache/
+
+# Ignorer les fichiers temporaires
+*.tmp
+*.swp
+*~
+
+# Ignorer les fichiers de configuration locaux
+local.settings.json
+
+# Ignorer les fichiers de lock
+package-lock.json
+yarn.lock
+
+# Ignorer les fichiers de build
+build/
+
+# Ignorer les fichiers de dump de base de données
+*.sql
+*.sqlite
+
+# Ignorer les fichiers de configuration de l'éditeur
+*.sublime-workspace
+*.sublime-project
+
+# Ignorer les fichiers de sauvegarde
+*.bak
+*.orig
+
+# Ignorer les fichiers de cache de l'éditeur
+*.cache
+*.idea/
+
+# Ignorer les fichiers de logs de l'application
+logs/
+*.log
+
+# Ignorer les fichiers de dump de mémoire
+core.*
