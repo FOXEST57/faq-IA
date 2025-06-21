@@ -50,4 +50,5 @@ if __name__ == "__main__":
             embeddings = generate_embeddings(chunks)
             for j, (chunk, emb) in enumerate(zip(chunks, embeddings)):
                 print(f"Chunk {j+1} : {chunk[:100]}... | Embedding shape: {emb.shape}")
+                print(f"Embedding {j+1} : {emb}")
             print()
