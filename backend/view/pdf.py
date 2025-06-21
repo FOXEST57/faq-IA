@@ -4,7 +4,7 @@ from flask import Blueprint, request, jsonify
 import os
 from werkzeug.utils import secure_filename
 from models import db, PDFDocument
-import fitz  # PyMuPDF pour l'extraction de texte
+# import fitz  # PyMuPDF pour l'extraction de texte
 
 # Création d'un blueprint Flask pour la gestion des PDF
 pdf_bp = Blueprint('pdf', __name__)

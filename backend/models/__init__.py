@@ -15,6 +15,7 @@ class FAQ(db.Model):
     question = db.Column(db.Text, nullable=False)
     answer = db.Column(db.Text, nullable=False)
     source = db.Column(db.String(20), nullable=False)  # 'manuel' ou 'ia'
+    category = db.Column(db.String(50), nullable=False, default='general')
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, onupdate=db.func.now())
 

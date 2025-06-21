@@ -166,3 +166,9 @@ des requêtes.
 8. Développement du module ML pour la prédiction des visites : Collecte dedonnées, entraînement du modèle, intégration.
 9. Tests unitaires et d'intégration.
 10. Déploiement : Configuration du serveur web, base de données, Ollama, etl'application Python.
+
+
+Install on frontend
+```bash
+npm install @mui/material @emotion/react @emotion/styled
+```
