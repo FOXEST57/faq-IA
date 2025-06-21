@@ -9,7 +9,7 @@ from models import db, User, FAQ, PDFDocument, VisitLog, AdminActionLog
 import os
 
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
+CORS(app) # Initialize CORS with your app
 basedir = os.path.abspath(os.path.dirname(__file__))
 app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(basedir, 'instance', 'faq.db')}"
 db.init_app(app)
