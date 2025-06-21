@@ -55,15 +55,38 @@ def save_embeddings_to_db(pdf_id: int, chunks: list[str], embeddings: list[np.nd
     db.session.commit()
 
 if __name__ == "__main__":
-    from app import app  # Import local pour éviter le circular import
-    pdf_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../uploads/Entrepreneur-dActivites-Numeriques-Numeric-Factory-Brochure-MNS.pdf"))
+    import argparse
+    parser = argparse.ArgumentParser(description="Indexation PDF : extraction, chunk, embeddings, sauvegarde en base")
+    parser.add_argument('--pdf', type=str, required=True, help='Chemin du fichier PDF à indexer')
+    parser.add_argument('--pdf_id', type=int, required=False, help="ID du PDF dans la base (optionnel)")
+    parser.add_argument('--description', type=str, required=False, help="Description du PDF (optionnel)")
+    args = parser.parse_args()
+
+    pdf_path = args.pdf
+    pdf_id = args.pdf_id
+    description = args.description or ""
+
     if not os.path.exists(pdf_path):
         print(f"Fichier introuvable : {pdf_path}")
     else:
-        pages = extract_text_from_pdf(pdf_path)
+        from app import app  # Import local pour éviter le circular import
+        from models.pdf_document import PDFDocument
         with app.app_context():
+            if pdf_id is not None:
+                pdf_doc = PDFDocument.query.get(pdf_id)
+                if not pdf_doc:
+                    pdf_doc = PDFDocument(id=pdf_id, filename=os.path.basename(pdf_path), description=description)
+                    db.session.add(pdf_doc)
+                    db.session.commit()
+            else:
+                pdf_doc = PDFDocument(filename=os.path.basename(pdf_path), description=description)
+                db.session.add(pdf_doc)
+                db.session.commit()
+                pdf_id = pdf_doc.id
+                print(f"Nouveau PDFDocument créé avec id={pdf_id}")
+            pages = extract_text_from_pdf(pdf_path)
             for i, text in enumerate(pages):
                 chunks = chunk_text(text)
                 embeddings = generate_embeddings(chunks)
-                save_embeddings_to_db(1, chunks, embeddings, i)
+                save_embeddings_to_db(pdf_id, chunks, embeddings, i)
             print("Sauvegarde en base terminée.")
