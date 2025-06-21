@@ -79,3 +79,26 @@ def extract_pdf_text(pdf_id):
             text += page.get_text()
     # Retourne le texte extrait sous forme de JSON
     return jsonify({'id': pdf_id, 'filename': pdf_doc.filename, 'text': text})
+
+@pdf_bp.route('/admin/pdfs', methods=['POST'])
+def create_pdf():
+    if 'file' not in request.files:
+        return jsonify({'error': 'Fichier PDF requis.'}), 400
+    file = request.files['file']
+    description = request.form.get('description', "")
+    if file.filename == '':
+        return jsonify({'error': 'Aucun fichier sélectionné.'}), 400
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Le fichier doit être un PDF.'}), 400
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    pdf_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(pdf_path)
+    pdf_doc = PDFDocument(filename=file.filename, description=description)
+    db.session.add(pdf_doc)
+    db.session.commit()
+    return jsonify({
+        'id': pdf_doc.id,
+        'filename': pdf_doc.filename,
+        'upload_date': pdf_doc.upload_date.isoformat() if pdf_doc.upload_date else None,
+        'description': pdf_doc.description
+    }), 201
