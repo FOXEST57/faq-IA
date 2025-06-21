@@ -1,8 +1,13 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import fitz  # PyMuPDF
 from typing import List
-import os
 from sentence_transformers import SentenceTransformer
 import numpy as np
+from models.pdf_embedding import PDFEmbedding
+from models import db
 
 def extract_text_from_pdf(pdf_path: str) -> List[str]:
     """
@@ -28,27 +33,37 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
         start += chunk_size - overlap
     return chunks
 
-# Charger le modèle une seule fois (ex : 'all-MiniLM-L6-v2')
-model = SentenceTransformer('all-MiniLM-L6-v2')
-
 def generate_embeddings(chunks: list[str]) -> list[np.ndarray]:
     """
     Génère les embeddings pour une liste de chunks de texte.
     """
+    model = SentenceTransformer('all-MiniLM-L6-v2')
     return model.encode(chunks, show_progress_bar=True)
 
+def save_embeddings_to_db(pdf_id: int, chunks: list[str], embeddings: list[np.ndarray], page_number: int):
+    """
+    Sauvegarde chaque chunk et son embedding dans la table PDFEmbedding.
+    """
+    for chunk, embedding in zip(chunks, embeddings):
+        pdf_embedding = PDFEmbedding(
+            pdf_id=pdf_id,
+            chunk_text=chunk,
+            embedding=embedding,
+            page_number=page_number
+        )
+        db.session.add(pdf_embedding)
+    db.session.commit()
+
 if __name__ == "__main__":
-    # Exemple de test : extraire le texte d'un PDF dans uploads/
+    from app import app  # Import local pour éviter le circular import
     pdf_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../uploads/Entrepreneur-dActivites-Numeriques-Numeric-Factory-Brochure-MNS.pdf"))
     if not os.path.exists(pdf_path):
         print(f"Fichier introuvable : {pdf_path}")
     else:
         pages = extract_text_from_pdf(pdf_path)
-        for i, text in enumerate(pages):
-            print(f"--- Page {i+1} ---")
-            chunks = chunk_text(text)
-            embeddings = generate_embeddings(chunks)
-            for j, (chunk, emb) in enumerate(zip(chunks, embeddings)):
-                print(f"Chunk {j+1} : {chunk[:100]}... | Embedding shape: {emb.shape}")
-                print(f"Embedding {j+1} : {emb}")
-            print()
+        with app.app_context():
+            for i, text in enumerate(pages):
+                chunks = chunk_text(text)
+                embeddings = generate_embeddings(chunks)
+                save_embeddings_to_db(1, chunks, embeddings, i)
+            print("Sauvegarde en base terminée.")
