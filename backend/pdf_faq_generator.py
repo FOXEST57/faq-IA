@@ -4,6 +4,10 @@ import ollama
 from io import BytesIO
 import json
 import time
+import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+import threading
+import os
 
 # Set page configuration
 st.set_page_config(
@@ -30,6 +34,8 @@ if 'display_counter' not in st.session_state:
     st.session_state.display_counter = 0
 if 'pdf_processed' not in st.session_state:
     st.session_state.pdf_processed = False
+if 'db_path' not in st.session_state:
+    st.session_state.db_path = '/Users/valentin/Python/MNS/faq-IA/backend/instance/faq.db'
 
 # Custom CSS for minimal UI
 st.markdown("""
@@ -158,13 +164,17 @@ with st.sidebar:
             st.session_state.pdf_processed = False
             st.session_state.generation_complete = False
             st.session_state.display_counter = 0
+            st.session_state.faqs = [] # Clear previous FAQs
+            st.session_state.approved_faqs = [] # Clear previous approved FAQs
     
     st.divider()
     
     st.subheader("Approved FAQs")
     if st.session_state.approved_faqs:
         st.success(f"{len(st.session_state.approved_faqs)} FAQs approved")
-        export_data = [{"question": faq['question'], "answer": faq['answer']} for faq in st.session_state.approved_faqs]
+        export_data = []
+        for faq in st.session_state.approved_faqs:
+            export_data.append({"question": faq['question'], "answer": faq['answer'], "source": faq.get('source', 'PDF Upload'), "category": faq.get('category', 'General')})
         json_data = json.dumps(export_data, indent=2)
         st.download_button(
             label="Export as JSON",
@@ -173,12 +183,22 @@ with st.sidebar:
             mime="application/json",
             use_container_width=True
         )
+        if st.button("Save Approved FAQs to Database", use_container_width=True, key="save_to_db_btn"):
+            save_faqs_to_db(st.session_state.approved_faqs)
+            st.success("Approved FAQs saved to database!")
+            st.session_state.approved_faqs = [] # Clear approved after saving
+            st.session_state.faqs = [] # Clear generated after saving
+            st.session_state.generation_complete = False
+            st.session_state.run_generation = False
+            st.session_state.pdf_processed = False
+            st.session_state.display_counter = 0
+            st.rerun()
     else:
         st.info("No approved FAQs yet")
         
     st.divider()
     
-    if st.checkbox("Show raw model output"):
+    if st.checkbox("Show raw model output"): # Moved to sidebar
         st.subheader("Raw Model Output")
         st.text_area("", value=st.session_state.raw_output, height=250, label_visibility="collapsed")
 
@@ -196,27 +216,27 @@ def extract_text_from_pdf(uploaded_file):
         st.error(f"Error extracting text: {str(e)}")
         return None
 
-# Function to generate FAQs
-def generate_faqs(text, num_faqs):
+# Function to generate a single FAQ batch
+def generate_faq_batch(text_chunk, model, num_faqs_per_chunk):
     prompt = f"""
-    Generate exactly {num_faqs} FAQ questions and answers based on the following text.
+    Generate exactly {num_faqs_per_chunk} FAQ questions and answers based on the following text.
     Format each FAQ strictly as: "Q: question here\nA: answer here\n\n"
-    Text: {text}
+    Text: {text_chunk}
     """
     
     try:
         response = ollama.generate(
-            model='mistral:7b-instruct-v0.3-fp16',
+            model=model,
             prompt=prompt,
             options={'temperature': 0.6, 'num_predict': 2000}
         )
         return response['response']
     except Exception as e:
-        st.error(f"Error generating FAQs: {str(e)}")
+        print(f"Error generating FAQ batch: {str(e)}") # Print to console for debugging
         return None
 
 # Function to parse generated FAQ text
-def parse_faqs(faq_text, num_faqs):
+def parse_faqs(faq_text, num_faqs_expected):
     entries = []
     current_q = None
     current_a = None
@@ -235,7 +255,36 @@ def parse_faqs(faq_text, num_faqs):
     if current_q and current_a:
         entries.append({"question": current_q, "answer": current_a, "approved": False})
     
-    return entries[:num_faqs]
+    return entries[:num_faqs_expected]
+
+# Function to save FAQs to SQLite database
+def save_faqs_to_db(faqs):
+    conn = None
+    try:
+        conn = sqlite3.connect(st.session_state.db_path)
+        c = conn.cursor()
+        # Ensure the 'faq' table exists with 'category' and 'source' columns
+        c.execute("""CREATE TABLE IF NOT EXISTS faq (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            source TEXT,
+            category TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )""")
+        conn.commit()
+
+        for faq in faqs:
+            if faq['approved']:
+                c.execute("INSERT INTO faq (question, answer, source, category) VALUES (?, ?, ?, ?)",
+                          (faq['question'], faq['answer'], faq.get('source', 'PDF Upload'), faq.get('category', 'General')))
+        conn.commit()
+    except sqlite3.Error as e:
+        st.error(f"Database error: {e}")
+    finally:
+        if conn:
+            conn.close()
 
 # Generate FAQs when triggered
 if st.session_state.run_generation and uploaded_file and not st.session_state.pdf_processed:
@@ -248,12 +297,46 @@ if st.session_state.run_generation and uploaded_file and not st.session_state.pd
             st.session_state.pdf_text = pdf_text
     
     if st.session_state.get('pdf_text'):
-        with st.spinner(f"🧠 Generating {num_faqs_to_generate} FAQs..."):
-            faq_output = generate_faqs(st.session_state.pdf_text, num_faqs_to_generate)
+        total_faqs_to_generate = num_faqs_to_generate
+        # We will use a ThreadPoolExecutor to run Ollama requests in parallel.
+        # This is effective because the requests are I/O-bound (waiting for network response).
         
-        if faq_output:
-            st.session_state.raw_output = faq_output
-            st.session_state.faqs = parse_faqs(faq_output, num_faqs_to_generate)
+        # Determine the number of parallel threads (workers).
+        # Let's cap it to a reasonable number to avoid overwhelming the Ollama server.
+        num_workers = min(total_faqs_to_generate, 5)
+        
+        # Distribute the number of FAQs to generate among the workers.
+        faqs_per_worker = [total_faqs_to_generate // num_workers] * num_workers
+        for i in range(total_faqs_to_generate % num_workers):
+            faqs_per_worker[i] += 1
+
+        generated_faqs_list = []
+        raw_outputs = []
+        futures = []
+
+        with st.spinner(f"🧠 Generating {total_faqs_to_generate} FAQs using {num_workers} parallel threads..."):
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                # Submit tasks to the executor
+                for num_faqs in faqs_per_worker:
+                    if num_faqs > 0:
+                        future = executor.submit(generate_faq_batch, st.session_state.pdf_text, 'mistral:7b-instruct-v0.3-fp16', num_faqs)
+                        futures.append(future)
+                
+                # Collect results as they complete
+                for future in futures:
+                    faq_output = future.result()
+                    if faq_output:
+                        raw_outputs.append(faq_output)
+                        # The number of expected FAQs from this batch is hard to get back here,
+                        # so we parse all we can get.
+                        parsed_faqs = parse_faqs(faq_output, 100) # Parse up to 100, will be trimmed later
+                        generated_faqs_list.extend(parsed_faqs)
+
+        # Trim to the exact number of requested FAQs
+        st.session_state.faqs = generated_faqs_list[:total_faqs_to_generate]
+
+        if st.session_state.faqs:
+            st.session_state.raw_output = "\n---\n".join(raw_outputs)
             st.session_state.generation_complete = True
             st.success("✅ FAQs generated successfully!")
             st.session_state.pdf_processed = True
@@ -261,65 +344,13 @@ if st.session_state.run_generation and uploaded_file and not st.session_state.pd
             st.error("Failed to generate FAQs. Please check the model and try again.")
             st.session_state.run_generation = False
 
-# Retrieve FAQs from database 'faq.db' from table 'faq'
-def get_faqs():
-    conn = sqlite3.connect('faq.db')
-    c = conn.cursor()
-    c.execute("SELECT * FROM faq")
-    faqs = c.fetchall()
-    conn.close()
-    return faqs
-
-# Add function to delete FAQ from database 'faq.db' from table 'faq'
-def delete_faq(faq_id):
-    conn = sqlite3.connect('faq.db')
-    c = conn.cursor()
-    c.execute("DELETE FROM faq WHERE id=?", (faq_id,))
-    conn.commit()
-    conn.close()
-
-# Add function to approve FAQ in database 'faq.db' from table 'faq'
-def approve_faq(faq_id):
-    conn = sqlite3.connect('faq.db')
-    c = conn.cursor()
-    c.execute("UPDATE faq SET approved=1 WHERE id=?", (faq_id,))
-    conn.commit()
-    conn.close()
-
-
-
-# Display question and answer FAQs stored in database 'faq.db' from table 'faq'
-def display_faq(faq):
-    st.markdown(f"#### ❓ Question {faq['question']}")
-    st.markdown(f"#### 💬 Answer {faq['answer']}")
-    st.divider()
-    st.button("Delete", key=f"delete_{faq['id']}", type="secondary")
-    st.button("Edit", key=f"edit_{faq['id']}", type="primary")
-    # Edit button functionality
-    if st.button("Edit", key=f"edit_{faq['id']}"):
-        st.session_state.edit_mode = True
-        st.session_state.editing_faq = faq
-        st.session_state.editing_faq['question'] = faq['question']
-        st.session_state.editing_faq['answer'] = faq['answer']
-        st.session_state.editing_faq['id'] = faq['id']
-        st.rerun()
-    # Delete button functionality
-    if st.button("Delete", key=f"delete_{faq['id']}"):
-        with st.spinner("Deleting FAQ..."):
-            delete_faq(faq['id'])
-            st.session_state.faqs = [f for f in st.session_state.faqs if f['id'] != faq['id']]
-            st.session_state.approved_faqs = [f for f in st.session_state.approved_faqs if f['id'] != faq['id']]
-            st.success("FAQ deleted successfully!")
-            st.session_state.display_counter -= 1
-            st.rerun()
-
-# Display FAQs
+# Display question and answer FAQs
 if st.session_state.generation_complete and st.session_state.faqs:
     st.divider()
     st.subheader("Review and Approve FAQs")
     
     # Progress display
-    progress = min(1.0, (st.session_state.display_counter + 1) / len(st.session_state.faqs))
+    progress = min(1.0, (st.session_state.display_counter + 1) / len(st.session_state.faqs)) if st.session_state.faqs else 1.0
     progress_bar = st.progress(progress)
     
     # Display FAQs incrementally
@@ -422,7 +453,7 @@ elif not st.session_state.run_generation:
                  ```
             """)
 
-# Approved FAQs Section
+# Approved FAQs Section (This section is now redundant as approved FAQs are handled in sidebar)
 if st.session_state.approved_faqs:
     st.divider()
     st.subheader("🌟 Approved FAQs")
