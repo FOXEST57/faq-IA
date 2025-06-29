@@ -7,7 +7,7 @@ class OllamaService:
 
     def generate_qa_from_text(self, text):
         print("generate_qa_from_text:", text)  # Add this line
-        prompt = f"""Given the following text, extract 10 distinct questions and their corresponding answers. Format the output as a JSON array of objects, where each object has 'question' and 'answer' keys. Ensure the questions and answers are directly derivable from the text provided.
+        prompt = f"""Given the following PDF, extract 10 distinct questions and their corresponding answers. Format the output as a JSON array of objects, where each object has 'question' and 'answer' keys. Ensure the questions and answers are directly derivable from the text provided.
 
 Text: {text}
 

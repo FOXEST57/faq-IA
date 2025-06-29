@@ -35,7 +35,7 @@ if 'display_counter' not in st.session_state:
 if 'pdf_processed' not in st.session_state:
     st.session_state.pdf_processed = False
 if 'db_path' not in st.session_state:
-    st.session_state.db_path = '/Users/valentin/Python/MNS/faq-IA/backend/instance/faq.db'
+    st.session_state.db_path = './backend/instance/faq.db'
 
 # Custom CSS for minimal UI
 st.markdown("""
@@ -228,7 +228,7 @@ def generate_faq_batch(text_chunk, model, num_faqs_per_chunk):
         response = ollama.generate(
             model=model,
             prompt=prompt,
-            options={'temperature': 0.6, 'num_predict': 2000}
+            options={'temperature': 0.2, 'num_predict': 300}
         )
         return response['response']
     except Exception as e:

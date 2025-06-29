@@ -20,6 +20,9 @@ app.register_blueprint(hello_bp)
 app.register_blueprint(faq_bp)
 app.register_blueprint(pdf_bp)
 
+with app.app_context():
+    db.create_all()
+
 
 if __name__ == '__main__':
     app.run(debug=True)
