@@ -166,3 +166,18 @@ des requêtes.
 8. Développement du module ML pour la prédiction des visites : Collecte dedonnées, entraînement du modèle, intégration.
 9. Tests unitaires et d'intégration.
 10. Déploiement : Configuration du serveur web, base de données, Ollama, etl'application Python.
+
+Commandes :
+
+server {
+    listen 80;
+    server_name cd2ia-pascal.stagiairesmns.fr;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;  # Port où tourne Gunicorn
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
