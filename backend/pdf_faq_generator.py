@@ -193,8 +193,39 @@ with st.sidebar:
             st.session_state.pdf_processed = False
             st.session_state.display_counter = 0
             st.rerun()
-    else:
-        st.info("No approved FAQs yet")
+        
+# Function to save FAQs to SQLite database
+def save_faqs_to_db(faqs):
+    conn = None
+        try:                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+            conn = sqlite3.connect(st.session_state.db_path)
+            c = conn.cursor()
+            # Ensure the 'faq' table exists with 'category' and 'source' columns
+            c.execute("""CREATE TABLE IF NOT EXISTS faq (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    question TEXT NOT NULL,
+                    answer TEXT NOT NULL,
+                    source TEXT,
+                    category TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )""")
+            conn.commit()
+        
+            for faq in faqs:
+                if faq['approved']:
+                    c.execute("INSERT INTO faq (question, answer, source, category) VALUES (?, ?, ?, ?)",
+                            (faq['question'], faq['answer'], faq.get('source', 'PDF Upload'), faq.get('category', 'General')))
+                    st.session_state.approved_faqs.append(faq)
+            conn.commit()                                                                            
+            st.success(f"{len(faqs)} FAQs saved to database!")                                                                                                                                                                                                                                      
+        except sqlite3.Error as e:
+                st.error(f"Database error: {e}")
+        finally:
+            if conn:
+                conn.close()
+            else:
+                st.info("No approved FAQs yet")
         
     st.divider()
     
@@ -303,7 +334,7 @@ if st.session_state.run_generation and uploaded_file and not st.session_state.pd
         
         # Determine the number of parallel threads (workers).
         # Let's cap it to a reasonable number to avoid overwhelming the Ollama server.
-        num_workers = min(total_faqs_to_generate, 5)
+        num_workers = min(total_faqs_to_generate, 10)
         
         # Distribute the number of FAQs to generate among the workers.
         faqs_per_worker = [total_faqs_to_generate // num_workers] * num_workers
@@ -464,4 +495,4 @@ if st.session_state.approved_faqs:
 
 # Footer
 st.divider()
-st.caption("PDF to FAQ Generator | Powered by Ollama | Made with Streamlit")
+st.caption("PDF to FAQ Generator | 'streamlit run pdf_faq_generator' ")

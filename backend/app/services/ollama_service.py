@@ -5,13 +5,16 @@ class OllamaService:
     def __init__(self, ollama_base_url="http://localhost:11434"):
         self.ollama_base_url = ollama_base_url
 
-    def generate_qa_from_text(self, text):
+    def generate_qa_from_text(self, text, num_of_questions=10):
         print("generate_qa_from_text:", text)  # Add this line
-        prompt = f"""Given the following PDF, extract 10 distinct questions and their corresponding answers. Format the output as a JSON array of objects, where each object has 'question' and 'answer' keys. Ensure the questions and answers are directly derivable from the text provided.
+        prompt = f"""Given the following PDF, extract and image true {num_of_questions} distinct questions and their corresponding answers. 
+                    Format the output as a JSON array of objects, where each object has 'question' and 'answer' keys. 
+                    Ensure the questions and answers are directly derivable from the text's PDF provided.
+                    If the text doesn't contain enough information to derive the answer to a question, do not output the question.
 
-Text: {text}
+                    PDF's Text: {text}
 
-JSON Output:"""
+                    JSON Output:"""
         
         payload = {
             "model": "mistral:7b-instruct-v0.3-fp16",
