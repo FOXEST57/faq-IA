@@ -26,5 +26,3 @@ app.register_blueprint(pdf_bp)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8000)
-root@vmjava:/var/www/html/faq-IA/backend#
- create mode 100644 backend/env/lib/python3.11/s
