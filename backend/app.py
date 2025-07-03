@@ -1,6 +1,5 @@
-from flask import Flask
+from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
-from view.hello import hello_bp
 from view.faq import faq_bp
 from view.pdf import pdf_bp
 from models import db, User, FAQ, PDFDocument, VisitLog, AdminActionLog
@@ -19,7 +18,12 @@ def nl2br_filter(text):
         return ''
     return text.replace('\n', '<br>\n')
 
-app.register_blueprint(hello_bp)
+# Route principale qui affiche la page FAQ
+@app.route('/')
+def index():
+    """Page d'accueil qui affiche l'interface FAQ"""
+    return render_template('faq_list.html')
+
 app.register_blueprint(faq_bp)
 app.register_blueprint(pdf_bp)
 
