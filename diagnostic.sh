@@ -59,12 +59,19 @@ fi
 
 # Test de l'API
 echo ""
-echo "🧪 Test de l'API:"
-if curl -s http://localhost:8000/hello > /dev/null 2>&1; then
-    echo "✅ API répond sur localhost:8000"
-    echo "   Réponse: $(curl -s http://localhost:8000/hello)"
+echo "🧪 Test de l'application:"
+if curl -s http://localhost:8000/ > /dev/null 2>&1; then
+    echo "✅ Application répond sur localhost:8000"
+    echo "   Page d'accueil accessible"
 else
-    echo "❌ API ne répond pas sur localhost:8000"
+    echo "❌ Application ne répond pas sur localhost:8000"
+fi
+
+# Test des routes API
+if curl -s http://localhost:8000/faq > /dev/null 2>&1; then
+    echo "✅ Route FAQ accessible"
+else
+    echo "❌ Route FAQ non accessible"
 fi
 
 # Vérifier les logs récents

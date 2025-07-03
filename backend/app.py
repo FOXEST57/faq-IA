@@ -22,7 +22,8 @@ def nl2br_filter(text):
 @app.route('/')
 def index():
     """Page d'accueil qui affiche l'interface FAQ"""
-    return render_template('faq_list.html')
+    faqs = FAQ.query.order_by(FAQ.created_at.desc()).all()
+    return render_template('faq_list.html', faqs=faqs)
 
 app.register_blueprint(faq_bp)
 app.register_blueprint(pdf_bp)
