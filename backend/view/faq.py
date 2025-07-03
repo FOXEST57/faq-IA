@@ -1,7 +1,21 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, render_template
 from models import db, FAQ
 
 faq_bp = Blueprint('faq', __name__)
+
+# Routes pour l'interface web (Jinja2)
+@faq_bp.route('/', methods=['GET'])
+@faq_bp.route('/faqs', methods=['GET'])
+def faq_list():
+    """Affiche la liste des FAQs avec une interface web moderne"""
+    faqs = FAQ.query.order_by(FAQ.created_at.desc()).all()
+    return render_template('faq_list.html', faqs=faqs)
+
+@faq_bp.route('/faq/<int:faq_id>', methods=['GET'])
+def faq_detail(faq_id):
+    """Affiche les détails d'une FAQ spécifique"""
+    faq = FAQ.query.get_or_404(faq_id)
+    return render_template('faq_detail.html', faq=faq)
 
 @faq_bp.route('/api/faq', methods=['GET'])
 def get_faqs():

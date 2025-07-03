@@ -166,3 +166,271 @@ des requêtes.
 8. Développement du module ML pour la prédiction des visites : Collecte dedonnées, entraînement du modèle, intégration.
 9. Tests unitaires et d'intégration.
 10. Déploiement : Configuration du serveur web, base de données, Ollama, etl'application Python.
+
+## Déploiement avec Nginx
+
+Cette section décrit la configuration complète pour déployer l'application FAQ IA sur un serveur avec nginx et Gunicorn.
+
+### Architecture de déploiement
+
+```
+[Client] → [Nginx] → [Gunicorn] → [Flask App]
+                ↓
+        [React Build (fichiers statiques)]
+```
+
+### Configuration Nginx
+
+#### 1. Fichier de configuration nginx (`/etc/nginx/sites-available/ia_faq`)
+
+```nginx
+server {
+    listen 80;
+    server_name cd2ia-thomas.stagiairesmns.fr;
+
+    # Taille maximale pour les uploads
+    client_max_body_size 10M;
+
+    # Servir les fichiers statiques du frontend React
+    location / {
+        try_files $uri $uri/ @backend;
+        root /home/tom/Bureau/ia_faq/frontend/build;
+        index index.html;
+    }
+
+    # Fallback pour les routes React (SPA)
+    location @backend {
+        try_files $uri /index.html;
+        root /home/tom/Bureau/ia_faq/frontend/build;
+    }
+
+    # API Backend via Gunicorn
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $server_name;
+        
+        # Timeout configuration
+        proxy_connect_timeout 300s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+    }
+
+    # Servir les fichiers uploads directement
+    location /uploads/ {
+        alias /home/tom/Bureau/ia_faq/backend/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Configuration pour les fichiers statiques
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        root /home/tom/Bureau/ia_faq/frontend/build;
+    }
+
+    # Logs
+    access_log /var/log/nginx/ia_faq_access.log;
+    error_log /var/log/nginx/ia_faq_error.log;
+}
+```
+
+#### 2. Script de démarrage Gunicorn (`start_gunicorn.sh`)
+
+```bash
+#!/bin/bash
+
+# Script de démarrage pour Gunicorn
+# Usage: ./start_gunicorn.sh
+
+cd /home/tom/Bureau/ia_faq/backend
+
+# Activer l'environnement virtuel
+source .venv/bin/activate
+
+# Démarrer Gunicorn
+gunicorn --bind 127.0.0.1:8000 \
+         --workers 4 \
+         --worker-class sync \
+         --timeout 300 \
+         --keep-alive 2 \
+         --max-requests 1000 \
+         --max-requests-jitter 100 \
+         --access-logfile /var/log/gunicorn/access.log \
+         --error-logfile /var/log/gunicorn/error.log \
+         --log-level info \
+         --daemon \
+         app:app
+```
+
+### Étapes de déploiement
+
+#### 1. Prérequis serveur
+```bash
+# Installer nginx
+sudo apt update
+sudo apt install nginx
+
+# Installer Python et pip (si pas déjà fait)
+sudo apt install python3 python3-pip python3-venv
+```
+
+#### 2. Préparation de l'application
+
+```bash
+# Aller dans le dossier backend
+cd /home/tom/Bureau/ia_faq/backend
+
+# Installer les dépendances (y compris Gunicorn)
+pip install -r requirements.txt
+
+# Créer les dossiers de logs
+sudo mkdir -p /var/log/gunicorn
+sudo mkdir -p /var/log/nginx
+sudo chown $USER:$USER /var/log/gunicorn
+
+# Rendre le script Gunicorn exécutable
+chmod +x ../start_gunicorn.sh
+```
+
+#### 3. Build du frontend
+
+```bash
+# Aller dans le dossier frontend
+cd /home/tom/Bureau/ia_faq/frontend
+
+# Installer les dépendances Node.js
+npm install
+
+# Créer le build de production
+npm run build
+```
+
+#### 4. Configuration Nginx
+
+```bash
+# Copier la configuration nginx
+sudo cp /home/tom/Bureau/ia_faq/nginx.conf /etc/nginx/sites-available/ia_faq
+
+# Activer le site
+sudo ln -s /etc/nginx/sites-available/ia_faq /etc/nginx/sites-enabled/
+
+# Désactiver le site par défaut (optionnel)
+sudo rm /etc/nginx/sites-enabled/default
+
+# Tester la configuration
+sudo nginx -t
+
+# Redémarrer nginx
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+```
+
+#### 5. Démarrage des services
+
+```bash
+# Démarrer Gunicorn
+cd /home/tom/Bureau/ia_faq
+./start_gunicorn.sh
+
+# Vérifier que Gunicorn fonctionne
+ps aux | grep gunicorn
+
+# Vérifier les logs
+tail -f /var/log/gunicorn/error.log
+tail -f /var/log/nginx/ia_faq_error.log
+```
+
+### Scripts utiles
+
+#### Arrêter Gunicorn
+```bash
+pkill -f gunicorn
+```
+
+#### Redémarrer l'application
+```bash
+# Arrêter Gunicorn
+pkill -f gunicorn
+
+# Redémarrer Gunicorn
+./start_gunicorn.sh
+
+# Recharger nginx
+sudo systemctl reload nginx
+```
+
+#### Surveillance des logs
+```bash
+# Logs Gunicorn
+tail -f /var/log/gunicorn/access.log
+tail -f /var/log/gunicorn/error.log
+
+# Logs Nginx
+tail -f /var/log/nginx/ia_faq_access.log
+tail -f /var/log/nginx/ia_faq_error.log
+```
+
+### Configuration SSL (Optionnel)
+
+Pour activer HTTPS avec Let's Encrypt :
+
+```bash
+# Installer Certbot
+sudo apt install certbot python3-certbot-nginx
+
+# Obtenir le certificat SSL
+sudo certbot --nginx -d cd2ia-thomas.stagiairesmns.fr
+
+# Renouvellement automatique
+sudo crontab -e
+# Ajouter : 0 12 * * * /usr/bin/certbot renew --quiet
+```
+
+### Monitoring et Performance
+
+#### Vérifier le statut des services
+```bash
+# Status nginx
+sudo systemctl status nginx
+
+# Processus Gunicorn
+ps aux | grep gunicorn
+
+# Ports utilisés
+sudo netstat -tlnp | grep :8000
+sudo netstat -tlnp | grep :80
+```
+
+#### Optimisations recommandées
+
+1. **Gunicorn Workers** : Ajuster selon CPU disponibles (2 x CPU cores + 1)
+2. **Nginx Cache** : Activé pour les fichiers statiques (1 an)
+3. **Upload Size** : Configuré à 10MB max
+4. **Timeouts** : 300s pour les requêtes longues (IA)
+
+### Troubleshooting
+
+#### Problèmes courants
+
+1. **502 Bad Gateway** : Vérifier que Gunicorn fonctionne sur le port 8000
+2. **403 Forbidden** : Vérifier les permissions des dossiers
+3. **404 sur API** : Vérifier que les routes Flask sont bien configurées
+4. **React routes ne fonctionnent pas** : Vérifier la configuration `@backend`
+
+#### Tests de fonctionnement
+
+```bash
+# Test API
+curl http://cd2ia-thomas.stagiairesmns.fr/api/faq
+
+# Test Frontend
+curl http://cd2ia-thomas.stagiairesmns.fr/
+
+# Test avec headers
+curl -H "Host: cd2ia-thomas.stagiairesmns.fr" http://127.0.0.1/api/faq
+```
