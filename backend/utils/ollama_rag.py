@@ -18,7 +18,7 @@ class OllamaRAGService:
         if self.model not in available_models:
             self.logger.warning(f"Modèle {self.model} non disponible")
             # Essayer des modèles plus petits
-            fallback_models = ["llama3.2:1b", "llama3.1", "llama3", "gemma:2b", "phi"]
+            fallback_models = ["llama3.2:1b", "llama3.1", "llama3", "gemma:2b", "phi3:mini", "phi"]
             for fallback in fallback_models:
                 if fallback in available_models:
                     self.model = fallback
