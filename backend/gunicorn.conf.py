@@ -11,6 +11,9 @@ max_requests_jitter = 50
 timeout = 30
 keepalive = 2
 
+# Répertoire de travail
+chdir = "/var/www/html/faq-IA/backend"
+
 # Logs
 accesslog = "/var/log/faq-ia/access.log"
 errorlog = "/var/log/faq-ia/error.log"

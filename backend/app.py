@@ -40,4 +40,5 @@ def create_app(config_name=None):
 app = create_app()
 
 if __name__ == '__main__':
+    # Mode développement seulement
     app.run(debug=True, host='0.0.0.0', port=8000)
