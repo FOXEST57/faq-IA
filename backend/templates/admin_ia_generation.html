@@ -1,101 +1,160 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Génération IA - FAQ Admin{% endblock %}
+
 {% block content %}
-<h2>Génération de FAQ par IA</h2>
-
-<!-- Statut Ollama -->
-<div class="alert {{ 'alert-success' if ollama_status else 'alert-danger' }} mb-4">
-    <h5>
-        <i class="fas {{ 'fa-check-circle' if ollama_status else 'fa-exclamation-triangle' }}"></i>
-        Statut Ollama : {{ 'Connecté' if ollama_status else 'Non disponible' }}
-    </h5>
-    {% if not ollama_status %}
-    <p>Ollama n'est pas accessible. Vérifiez que le service est démarré sur le serveur.</p>
-    {% else %}
-    <p>Modèle actuel : <strong>{{ current_model }}</strong></p>
-    {% endif %}
-</div>
-
-<!-- Liste des PDF disponibles -->
-<div class="card mb-4">
-    <div class="card-header">
-        <h5>Documents PDF disponibles</h5>
-    </div>
-    <div class="card-body">
-        {% if pdfs %}
-        <form method="post" action="{{ url_for('pdf.generate_faq_from_pdf') }}">
-            <div class="mb-3">
-                <label for="pdf_id" class="form-label">Sélectionner un PDF :</label>
-                <select class="form-select" id="pdf_id" name="pdf_id" required>
-                    <option value="">-- Choisir un document --</option>
-                    {% for pdf in pdfs %}
-                    <option value="{{ pdf.id }}">{{ pdf.filename }} ({{ pdf.description or 'Pas de description' }})</option>
-                    {% endfor %}
-                </select>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>🤖 Génération de FAQ par IA</h2>
+                <a href="{{ url_for('faq.admin_faq_list') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Retour aux FAQ
+                </a>
             </div>
-            <button type="submit" class="btn btn-primary" {{ 'disabled' if not ollama_status else '' }}>
-                <i class="fas fa-magic"></i> Générer des FAQ
-            </button>
-        </form>
-        {% else %}
-        <p class="text-muted">Aucun document PDF disponible. <a href="{{ url_for('pdf.admin_pdf_upload') }}">Uploadez d'abord des PDF</a>.</p>
-        {% endif %}
-    </div>
-</div>
 
-<!-- FAQ générées en attente de validation -->
-{% if pending_faqs %}
-<div class="card">
-    <div class="card-header">
-        <h5>FAQ générées par IA (en attente de validation)</h5>
-    </div>
-    <div class="card-body">
-        {% for faq in pending_faqs %}
-        <div class="card mb-3">
-            <div class="card-body">
-                <h6 class="card-title">{{ faq.question }}</h6>
-                <p class="card-text">{{ faq.answer }}</p>
-                <div class="d-flex gap-2">
-                    <form method="post" action="{{ url_for('approve_generated_faq') }}" style="display:inline;">
-                        <input type="hidden" name="faq_id" value="{{ faq.id }}">
-                        <button type="submit" class="btn btn-sm btn-success">
-                            <i class="fas fa-check"></i> Approuver
-                        </button>
-                    </form>
-                    <form method="post" action="{{ url_for('reject_generated_faq') }}" style="display:inline;">
-                        <input type="hidden" name="faq_id" value="{{ faq.id }}">
-                        <button type="submit" class="btn btn-sm btn-danger">
-                            <i class="fas fa-times"></i> Rejeter
-                        </button>
-                    </form>
-                    <a href="{{ url_for('edit_generated_faq', faq_id=faq.id) }}" class="btn btn-sm btn-warning">
-                        <i class="fas fa-edit"></i> Modifier
-                    </a>
+            <!-- Statut Ollama -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot"></i> Statut du Service IA
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Connexion Ollama:</strong>
+                                {% if ollama_status %}
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle"></i> Connecté
+                                    </span>
+                                {% else %}
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-times-circle"></i> Déconnecté
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-2">
+                                <strong>Modèle actuel:</strong>
+                                <span class="badge badge-info">{{ current_model }}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    {% if not ollama_status %}
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Attention:</strong> Ollama n'est pas accessible.
+                            Assurez-vous que le service est démarré sur votre serveur.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Génération de FAQ -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-magic"></i> Générer des FAQ à partir d'un PDF
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if pdfs %}
+                        <form method="POST" action="{{ url_for('pdf.generate_faq_from_pdf') }}" id="generateForm">
+                            <div class="form-group">
+                                <label for="pdf_id">Sélectionner un document PDF :</label>
+                                <select name="pdf_id" id="pdf_id" class="form-control" required>
+                                    <option value="">-- Choisir un document --</option>
+                                    {% for pdf in pdfs %}
+                                        <option value="{{ pdf.id }}">
+                                            {{ pdf.filename }}
+                                            ({{ pdf.upload_date.strftime('%d/%m/%Y à %H:%M') }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="confirmGeneration" required>
+                                    <label class="form-check-label" for="confirmGeneration">
+                                        Je comprends que ce processus peut prendre plusieurs minutes
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Information:</strong>
+                                Le processus de génération peut prendre 2 à 5 minutes selon la taille du document.
+                                Les FAQ générées seront automatiquement ajoutées à votre liste et marquées comme "générées par IA".
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-lg" id="generateBtn"
+                                    {% if not ollama_status %}disabled{% endif %}>
+                                <i class="fas fa-magic"></i> Générer des FAQ
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Aucun PDF disponible.</strong>
+                            Vous devez d'abord <a href="{{ url_for('pdf.admin_pdf_upload') }}">uploader des documents PDF</a>
+                            avant de pouvoir générer des FAQ.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-question-circle"></i> Comment ça fonctionne
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li><strong>Sélectionnez un PDF</strong> : Choisissez un document depuis lequel générer des FAQ</li>
+                        <li><strong>Lancez la génération</strong> : L'IA va analyser le contenu du document</li>
+                        <li><strong>Patientez</strong> : Le processus peut prendre quelques minutes</li>
+                        <li><strong>Vérifiez les résultats</strong> : Les FAQ générées apparaîtront dans votre liste</li>
+                        <li><strong>Modifiez si nécessaire</strong> : Vous pouvez éditer ou supprimer les FAQ générées</li>
+                    </ol>
                 </div>
             </div>
         </div>
-        {% endfor %}
-    </div>
-</div>
-{% endif %}
-
-<!-- Instructions -->
-<div class="card mt-4">
-    <div class="card-header">
-        <h5>Instructions</h5>
-    </div>
-    <div class="card-body">
-        <ol>
-            <li><strong>Vérifiez le statut d'Ollama</strong> : Le service doit être en ligne pour générer des FAQ.</li>
-            <li><strong>Sélectionnez un PDF</strong> : Choisissez un document dans la liste ci-dessus.</li>
-            <li><strong>Génération automatique</strong> : L'IA analyse le contenu et génère des questions/réponses.</li>
-            <li><strong>Validation</strong> : Approuvez, rejetez ou modifiez les FAQ générées avant publication.</li>
-        </ol>
-
-        <div class="alert alert-info mt-3">
-            <strong>Note :</strong> Le processus peut prendre quelques minutes selon la taille du document.
-            Les FAQ générées seront marquées comme "source: ia" dans le système.
-        </div>
     </div>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('generateForm');
+    const generateBtn = document.getElementById('generateBtn');
+
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+
+            // Afficher un message d'attente
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-info mt-3';
+            alertDiv.innerHTML = `
+                <i class="fas fa-clock"></i>
+                <strong>Génération en cours...</strong>
+                Veuillez patienter, ce processus peut prendre plusieurs minutes.
+                <div class="progress mt-2">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                         role="progressbar" style="width: 100%"></div>
+                </div>
+            `;
+            form.appendChild(alertDiv);
+        });
+    }
+});
+</script>
 {% endblock %}
