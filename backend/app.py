@@ -65,6 +65,79 @@ def create_app(config_name=None):
         flash('Déconnexion réussie.', 'info')
         return redirect(url_for('faq.faq_list'))
 
+    from functools import wraps
+    def admin_required(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get('user_id') or not session.get('is_admin'):
+                flash("Accès réservé aux administrateurs.", "danger")
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+        return decorated_function
+
+    @app.route('/admin/users')
+    @admin_required
+    def admin_users():
+        users = User.query.all()
+        return render_template('admin_users.html', users=users)
+
+    @app.route('/admin/users/add', methods=['GET', 'POST'])
+    @admin_required
+    def add_user():
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+            is_admin = bool(request.form.get('is_admin'))
+            if not username or not password:
+                flash("Nom d'utilisateur et mot de passe requis.", "danger")
+                return render_template('admin_user_form.html')
+            if User.query.filter_by(username=username).first():
+                flash("Nom d'utilisateur déjà utilisé.", "danger")
+                return render_template('admin_user_form.html')
+            from werkzeug.security import generate_password_hash
+            user = User(username=username, password_hash=generate_password_hash(password), is_admin=is_admin)
+            db.session.add(user)
+            db.session.commit()
+            flash("Administrateur ajouté avec succès.", "success")
+            return redirect(url_for('admin_users'))
+        return render_template('admin_user_form.html')
+
+    @app.route('/admin/users/edit/<int:user_id>', methods=['GET', 'POST'])
+    @admin_required
+    def edit_user(user_id):
+        user = User.query.get_or_404(user_id)
+        if request.method == 'POST':
+            username = request.form.get('username')
+            is_admin = bool(request.form.get('is_admin'))
+            if not username:
+                flash("Nom d'utilisateur requis.", "danger")
+                return render_template('admin_user_form.html', user=user, edit=True)
+            if User.query.filter(User.username == username, User.id != user.id).first():
+                flash("Nom d'utilisateur déjà utilisé.", "danger")
+                return render_template('admin_user_form.html', user=user, edit=True)
+            user.username = username
+            user.is_admin = is_admin
+            password = request.form.get('password')
+            if password:
+                from werkzeug.security import generate_password_hash
+                user.password_hash = generate_password_hash(password)
+            db.session.commit()
+            flash("Utilisateur modifié avec succès.", "success")
+            return redirect(url_for('admin_users'))
+        return render_template('admin_user_form.html', user=user, edit=True)
+
+    @app.route('/admin/users/delete/<int:user_id>', methods=['POST'])
+    @admin_required
+    def delete_user(user_id):
+        user = User.query.get_or_404(user_id)
+        if user.id == session.get('user_id'):
+            flash("Vous ne pouvez pas supprimer votre propre compte.", "danger")
+            return redirect(url_for('admin_users'))
+        db.session.delete(user)
+        db.session.commit()
+        flash("Utilisateur supprimé avec succès.", "success")
+        return redirect(url_for('admin_users'))
+
     app.register_blueprint(faq_bp)
     app.register_blueprint(pdf_bp)
 
