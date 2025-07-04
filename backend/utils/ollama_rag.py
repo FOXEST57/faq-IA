@@ -14,6 +14,10 @@ class OllamaRAGService:
         self.logger = logging.getLogger(__name__)
 
         # Vérifier si le modèle existe, sinon utiliser un modèle de fallback
+        self._select_available_model()
+
+    def _select_available_model(self):
+        """Sélectionne un modèle disponible"""
         available_models = self.get_available_models()
         if self.model not in available_models:
             self.logger.warning(f"Modèle {self.model} non disponible")
@@ -26,6 +30,10 @@ class OllamaRAGService:
                     break
             else:
                 self.logger.error("Aucun modèle compatible trouvé")
+                # Utiliser le premier modèle disponible s'il y en a un
+                if available_models:
+                    self.model = available_models[0]
+                    self.logger.info(f"Utilisation du premier modèle disponible: {self.model}")
 
     def check_ollama_connection(self) -> bool:
         """Vérifie si Ollama est accessible"""
