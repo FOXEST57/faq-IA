@@ -1,10 +1,11 @@
 # Ajout d'un blueprint Flask pour l'upload et la gestion des PDF (upload et listing).
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session
 import os
 from werkzeug.utils import secure_filename
 from models import db, PDFDocument
 import fitz  # PyMuPDF pour l'extraction de texte
+from functools import wraps
 
 # Création d'un blueprint Flask pour la gestion des PDF
 pdf_bp = Blueprint('pdf', __name__)
@@ -80,25 +81,63 @@ def extract_pdf_text(pdf_id):
     # Retourne le texte extrait sous forme de JSON
     return jsonify({'id': pdf_id, 'filename': pdf_doc.filename, 'text': text})
 
-@pdf_bp.route('/admin/pdfs', methods=['POST'])
-def create_pdf():
-    if 'file' not in request.files:
-        return jsonify({'error': 'Fichier PDF requis.'}), 400
-    file = request.files['file']
-    description = request.form.get('description', "")
-    if file.filename == '':
-        return jsonify({'error': 'Aucun fichier sélectionné.'}), 400
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'Le fichier doit être un PDF.'}), 400
-    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    pdf_path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(pdf_path)
-    pdf_doc = PDFDocument(filename=file.filename, description=description)
-    db.session.add(pdf_doc)
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('user_id') or not session.get('is_admin'):
+            flash("Accès réservé aux administrateurs.", "danger")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@pdf_bp.route('/admin/pdfs')
+@admin_required
+def admin_pdf_list():
+    pdfs = PDFDocument.query.order_by(PDFDocument.upload_date.desc()).all()
+    return render_template('admin_pdf_list.html', pdfs=pdfs)
+
+@pdf_bp.route('/admin/pdfs/upload', methods=['GET', 'POST'])
+@admin_required
+def admin_pdf_upload():
+    if request.method == 'POST':
+        if 'pdf_file' not in request.files:
+            flash('Aucun fichier sélectionné.', 'danger')
+            return render_template('admin_pdf_upload.html')
+
+        file = request.files['pdf_file']
+        if file.filename == '':
+            flash('Aucun fichier sélectionné.', 'danger')
+            return render_template('admin_pdf_upload.html')
+
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            # Créer le dossier uploads s'il n'existe pas
+            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+
+            description = request.form.get('description', '')
+            pdf_doc = PDFDocument(filename=filename, description=description)
+            db.session.add(pdf_doc)
+            db.session.commit()
+
+            flash('PDF uploadé avec succès.', 'success')
+            return redirect(url_for('pdf.admin_pdf_list'))
+        else:
+            flash('Format de fichier non autorisé. Seuls les PDF sont acceptés.', 'danger')
+
+    return render_template('admin_pdf_upload.html')
+
+@pdf_bp.route('/admin/pdfs/delete/<int:pdf_id>', methods=['POST'])
+@admin_required
+def admin_delete_pdf(pdf_id):
+    pdf_doc = PDFDocument.query.get_or_404(pdf_id)
+    # Supprimer le fichier physique
+    filepath = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
+    if os.path.exists(filepath):
+        os.remove(filepath)
+    # Supprimer l'entrée en base
+    db.session.delete(pdf_doc)
     db.session.commit()
-    return jsonify({
-        'id': pdf_doc.id,
-        'filename': pdf_doc.filename,
-        'upload_date': pdf_doc.upload_date.isoformat() if pdf_doc.upload_date else None,
-        'description': pdf_doc.description
-    }), 201
+    flash('PDF supprimé avec succès.', 'success')
+    return redirect(url_for('pdf.admin_pdf_list'))
