@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, session, redirect, url_for, request, flash
 from flask_sqlalchemy import SQLAlchemy
 from view.faq import faq_bp
 from view.pdf import pdf_bp
@@ -6,6 +6,7 @@ from models import db, User, FAQ, PDFDocument, VisitLog, AdminActionLog
 from config import config
 import os
 import flask
+from werkzeug.security import check_password_hash
 
 def create_app(config_name=None):
     """Factory pour créer l'application Flask"""
@@ -43,8 +44,31 @@ def create_app(config_name=None):
             return render_template('contact.html', success=True, name=name)
         return render_template('contact.html')
 
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+            user = User.query.filter_by(username=username).first()
+            if user and check_password_hash(user.password_hash, password):
+                session['user_id'] = user.id
+                session['is_admin'] = user.is_admin
+                flash('Connexion réussie.', 'success')
+                return redirect(url_for('faq.faq_list'))
+            else:
+                return render_template('login.html', error="Nom d'utilisateur ou mot de passe incorrect.")
+        return render_template('login.html')
+
+    @app.route('/logout')
+    def logout():
+        session.clear()
+        flash('Déconnexion réussie.', 'info')
+        return redirect(url_for('faq.faq_list'))
+
     app.register_blueprint(faq_bp)
     app.register_blueprint(pdf_bp)
+
+    app.secret_key = app.config.get('SECRET_KEY', 'dev')
 
     return app
 
