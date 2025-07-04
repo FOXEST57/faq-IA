@@ -34,6 +34,14 @@ frontend/build/
 # Ignorer les fichiers d'environnement
 .env
 .env.*
+.venv/
+# Ignorer les fichiers de configuration de l'application
+config.json
+config.yaml
+# Ignorer les fichiers de données
+data/
+# Ignorer les fichiers de documentation
+docs/
 
 # Ignorer les fichiers uploads
 backend/uploads/

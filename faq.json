@@ -1,0 +1,329 @@
+{
+  "questions": [
+    {
+      "question": "Quel est le nom de l'école de référence pour préparer les apprenants aux métiers du numérique à Metz ?",
+      "réponse": "Metz Numeric School"
+    },
+    {
+      "question": "Quels sont les domaines de spécialisation de l'école Metz Numeric School ?",
+      "réponse": "L'informatique, la cybersécurité et le marketing digital"
+    },
+    {
+      "question": "Quelles sont les options de formation proposées par l'école Metz Numeric School ?",
+      "réponse": "Formation classique ou en alternance dans le cadre d'un contrat d'apprentissage ou de professionnalisation"
+    },
+    {
+      "question": "Quels sont les niveaux de formation proposés par l'école Metz Numeric School en développement informatique ?",
+      "réponse": "BAC à BAC+5"
+    },
+    {
+      "question": "Quels sont les domaines de spécialisation du développement informatique proposé par l'école Metz Numeric School ?",
+      "réponse": "Web, mobile, logiciel..."
+    },
+    {
+      "question": "Quels sont les niveaux de formation proposés par l'école Metz Numeric School en systèmes, réseaux et cybersécurité ?",
+      "réponse": "Bac au BAC+5"
+    },
+    {
+      "question": "Quels sont les domaines de spécialisation des systèmes, réseaux et cybersécurité proposé par l'école Metz Numeric School ?",
+      "réponse": "Infrastructure, cloud, sécurité..."
+    },
+    {
+      "question": "Quels sont les niveaux de formation proposés par l'école Metz Numeric School en commerce et marketing digital ?",
+      "réponse": "BAC à BAC+5"
+    },
+    {
+      "question": "Quels sont les domaines de spécialisation du commerce et marketing digital proposé par l'école Metz Numeric School ?",
+      "réponse": "Réseaux sociaux, e-commerce, data..."
+    },
+    {
+      "question": "Quel est l'objectif de la pédagogie de l'école Metz Numeric School ?",
+      "réponse": "Connectée au marché de l'emploi"
+    },
+    {
+      "question": "Quel est l'écosystème d'entreprises de l'école Metz Numeric School ?",
+      "réponse": "Locaux modernes idéalement situés"
+    },
+    {
+      "question": "Comment peut-on obtenir plus d'informations sur l'école Metz Numeric School et ses formations ?",
+      "réponse": "En visitant le site web ou en contactant l'école directement"
+    },
+    {
+      "question": "Quel est le nom de la télévision locale qui a invité l'école Metz Numeric School ?",
+      "réponse": "Moselle TV"
+    },
+    {
+      "question": "Quel est le nom de la mission locale qui a collaboré avec l'école Metz Numeric School ?",
+      "réponse": "La Mission Locale"
+    },
+    {
+      "question": "Quel est le nom de l'événement organisé par le BDE de l'école Metz Numeric School ?",
+      "réponse": "La chasse aux œufs de Pâques"
+    },
+    {
+      "question": "Quel est l'objectif de l'école Metz Numeric School ?",
+      "réponse": "Accompagner les apprenants pour les préparer aux métiers du numérique"
+    },
+    {
+      "question": "Quels sont les avantages de l'école Metz Numeric School ?",
+      "réponse": "Pédagogie connectée au marché de l'emploi, écosystème d'entreprises, locaux modernes idéalement situés..."
+    },
+    {
+      "question": "Comment peut-on candidater à une formation de l'école Metz Numeric School ?",
+      "réponse": "En transmettant sa candidature en un instant ou en prenant le temps de discuter avec l'école"
+    },
+    {
+      "question": "Quel est le but de l'école Metz Numeric School ?",
+      "réponse": "Fournir des formations de qualité pour préparer les apprenants aux métiers du numérique"
+    },
+    {
+      "question": "Quels sont les domaines de spécialisation de l'école Metz Numeric School ?",
+      "réponse": "L'informatique, la cybersécurité, le marketing digital, la création numérique"
+    },
+    {
+      "question": "Quels sont les niveaux de formation proposés par l'école Metz Numeric School ?",
+      "réponse": "BAC à BAC+5"
+    },
+  {
+    "question": "Quels sont les niveaux de formation proposés en développement informatique ?",
+    "answer": "Les niveaux de formation proposés vont de BAC à BAC+5."
+  },
+  {
+    "question": "Quels sont les principaux domaines de formation en développement informatique ?",
+    "answer": "Les principaux domaines de formation sont Web, Mobile, Logiciel et IA (Intelligence Artificielle)."
+  },
+  {
+    "question": "Quels sont les profils de formations spécifiques proposés ?",
+    "answer": "Parmi les formations spécifiques, on trouve : Concepteur Développeur Intégrateur, Concepteur Développeur d'Applications, Développeur Web et Web Mobile, Développeur Informatique, Développeur Full Stack, Développement Ingénierie Informatique."
+  },
+  {
+    "question": "Quels sont les objectifs des formations en développement informatique ?",
+    "answer": "Les objectifs des formations sont de maîtriser les langages, frameworks et bonnes pratiques du développement et de créer des outils performants et utiles."
+  },
+  {
+    "question": "Quels sont les avantages de choisir Numeric School pour les formations en développement informatique ?",
+    "answer": "Les avantages sont : Conçues avec des professionnels et des organisations qui fédèrent les acteurs du numérique, Permettent de \"digitaliser\" votre carrière."
+  },
+  {
+    "question": "Quels sont les types de formations proposés (en ligne, en présentiel, en alternance, etc.) ?",
+    "answer": "Les types de formations proposés sont en présentiel et en alternance."
+  },
+  {
+    "question": "Quel est le temps de formation pour les formations en développement informatique ?",
+    "answer": "Le temps de formation varie en fonction du niveau et du type de formation, allant de 1 an à 5 ans."
+  },
+  {
+    "question": "Quels sont les critères d'admission pour les formations en développement informatique ?",
+    "answer": "Les critères d'admission sont : Niveau de formation précédent, Expérience professionnelle, Compétences en développement informatique."
+  },
+  {
+    "question": "Quels sont les outils et les technologies utilisés dans les formations en développement informatique ?",
+    "answer": "Les outils et les technologies utilisés sont : Langages de programmation (Python, Java, C++, etc.), Frameworks (React, Angular, Vue.js, etc.), Bases de données (MySQL, MongoDB, etc.)."
+  },
+  {
+    "question": "Quels sont les supports de formation proposés (manuel, en ligne, etc.) ?",
+    "answer": "Les supports de formation proposés sont : Manuel, En ligne."
+  },
+  {
+    "question": "Quels sont les avantages de suivre une formation en développement informatique ?",
+    "answer": "Les avantages sont : Augmentation des compétences en développement informatique, Amélioration des opportunités d'emploi, Accès à des technologies et outils de pointe."
+  },
+  {
+    "question": "Quels sont les domaines d'application des formations en développement informatique ?",
+    "answer": "Les domaines d'application sont : Web, Mobile, Logiciel, IA (Intelligence Artificielle)."
+  },
+  {
+    "question": "Quels sont les objectifs des formations en développement d'applications ?",
+    "answer": "Les objectifs sont de concevoir et développer des applications web et mobiles."
+  },
+  {
+    "question": "Quels sont les outils et les technologies utilisés dans les formations en développement d'applications ?",
+    "answer": "Les outils et les technologies utilisés sont : Langages de programmation (Java, C++, etc.), Frameworks (React, Angular, Vue.js, etc.), Bases de données (MySQL, MongoDB, etc.)."
+  },
+  {
+    "question": "Quels sont les avantages de suivre une formation en développement d'applications ?",
+    "answer": "Les avantages sont : Augmentation des compétences en développement d'applications, Amélioration des opportunités d'emploi, Accès à des technologies et outils de pointe."
+  },
+  {
+    "question": "Quels sont les domaines d'application des formations en développement web ?",
+    "answer": "Les domaines d'application sont : Web, E-commerce, Intranet."
+  },
+  {
+    "question": "Quels sont les outils et les technologies utilisés dans les formations en développement web ?",
+    "answer": "Les outils et les technologies utilisés sont : Langages de programmation (HTML, CSS, JavaScript, etc.), Frameworks (React, Angular, Vue.js, etc.), Bases de données (MySQL, MongoDB, etc.)."
+  },
+  {
+    "question": "Quels sont les avantages de suivre une formation en développement web ?",
+    "answer": "Les avantages sont : Augmentation des compétences en développement web, Amélioration des opportunités d'emploi, Accès à des technologies et outils de pointe."
+  },
+  {
+    "question": "Quels sont les domaines d'application des formations en développement mobile ?",
+    "answer": "Les domaines d'application sont : Mobile, Tablette, Smartwatch."
+  },
+  {
+    "question": "Quels sont les outils et les technologies utilisés dans les formations en développement mobile ?",
+    "answer": "Les outils et les technologies utilisés sont : Langages de programmation (Java, C++, etc.), Frameworks (React Native, Flutter, etc.), Bases de données (MySQL, MongoDB, etc.)."
+  },
+  {
+    "question": "Quel est l'objectif de la formation de Concepteur Développeur Intégrateur IA ?",
+    "answer": "L'objectif de la formation est de former des concepteurs développeurs d'applications qui conçoivent et développent des applications sécurisées, tels que des logiciels d'entreprise, des applications pour mobiles et tablettes, ainsi que des sites Web. Ils respectent la réglementation en vigueur, identifient les besoins en éco-conception et appliquent les procédures qualité de l'entreprise."
+  },
+  {
+    "question": "Quelles sont les principales compétences développées dans cette formation ?",
+    "answer": "Les principales compétences développées dans cette formation sont :\n\n1. Développer une application sécurisée\n2. Concevoir et développer une application sécurisée organisée en couches\n3. Préparer le déploiement d'une application sécurisée"
+  },
+  {
+    "question": "Quelle est la durée totale de la formation ?",
+    "answer": "La formation a une durée totale de 751,5 heures."
+  },
+  {
+    "question": "Quels sont les débouchés professionnels de cette formation ?",
+    "answer": "Cette formation permet de travailler dans les secteurs d'activités suivants :"
+  },
+  {
+    "question": "Quelles sont les méthodes pédagogiques utilisées dans cette formation ?",
+    "answer": "Les méthodes pédagogiques mobilisées ne sont pas détaillées dans le texte fourni."
+  },
+  {
+    "question": "Quelles sont les modalités d'évaluation et de préparation aux examens ?",
+    "answer": "Les modalités d'évaluation et de préparation aux examens ne sont pas précisées dans le texte."
+  },
+  {
+    "question": "Cette formation est-elle accessible aux personnes en situation de handicap ?",
+    "answer": "Oui, l'ensemble des formations proposées par l'établissement sont accessibles aux personnes en situation de handicap, après étude des possibilités d'aménagement."
+  },
+  {
+    "question": "Quels sont les prérequis pour intégrer cette formation ?",
+    "answer": "Le texte ne mentionne pas les prérequis spécifiques pour intégrer cette formation."
+  },
+  {
+    "question": "Quelles sont les modalités d'accès à cette formation ?",
+    "answer": "Les modalités d'accès à cette formation ne sont pas détaillées dans le texte fourni."
+  },
+  {
+    "question": "Quelles sont les poursuites d'études et passerelles possibles après cette formation ?",
+    "answer": "Après cette formation, il est possible de poursuivre avec un Mastère Management Ingénierie Informatique (titre RNCP niveau 7)."
+  },
+  {
+    "question": "Quels sont les blocs de compétences développés dans cette formation ?",
+    "answer": "Les blocs de compétences développés dans cette formation sont :\n\n1. Développer une application sécurisée\n2. Concevoir et développer une application sécurisée organisée en couches\n3. Préparer le déploiement d'une application sécurisée"
+  },
+  {
+    "question": "Quelles sont les principales missions du concepteur développeur d'applications ?",
+    "answer": "Les principales missions du concepteur développeur d'applications sont :\n\n- Concevoir et développer des applications sécurisées, tels que des logiciels d'entreprise, des applications pour mobiles et tablettes, ainsi que des sites Web.\n- Respecter la réglementation en vigueur.\n- Identifier les besoins en éco-conception.\n- Appliquer les procédures qualité de l'entreprise.\n- Contribuer à la réussite du projet en termes de satisfaction des besoins des utilisateurs, gestion de projet, qualité, coût et délai.\n- Assurer la sécurité de l'application."
+  },
+  {
+    "question": "Quels sont les secteurs d'activités dans lesquels peut travailler un concepteur développeur d'applications ?",
+    "answer": "Le texte ne fournit pas d'informations spécifiques sur les secteurs d'activités dans lesquels peut travailler un concepteur développeur d'applications."
+  },
+  {
+    "question": "Quelles sont les formations Bachelor proposées par l'établissement ?",
+    "answer": "L'établissement propose les formations Bachelor suivantes :\n\n- Bachelor Designer Numérique en alternance en 1 an\n- Bachelor Développeur Informatique en 3 ans\n- Bachelor Système, Réseaux & Cybersécurité en 3 ans"
+  },
+  {
+    "question": "Qu'est-ce que le Campus MNS ?",
+    "answer": "Le texte indique que les formations sont « Conçues avec des professionnels et des organisations qui fédèrent les acteurs du numérique », mais ne fournit pas d'informations supplémentaires sur le Campus MNS."
+  },
+  {
+    "question": "Quelles sont les modalités pédagogiques de cette formation ?",
+    "answer": "Les modalités pédagogiques de cette formation ne sont pas détaillées dans le texte fourni."
+  },
+  {
+    "question": "Quels sont les objectifs de la formation en termes de satisfaction des besoins des utilisateurs, gestion de projet, qualité, coût et délai ?",
+    "answer": "D'après le texte, le concepteur développeur d'applications « contribue à la réussite du projet en termes de satisfaction des besoins des utilisateurs, gestion de projet, qualité, coût et délai »."
+  },
+  {
+    "question": "Quels sont les prérequis pour devenir technicien supérieur système et réseaux ?",
+    "answer": "Le texte ne mentionne pas explicitement les prérequis pour cette formation. Cependant, on peut supposer que des connaissances de base en informatique, systèmes et réseaux sont nécessaires pour suivre cette formation de technicien supérieur."
+  },
+  {
+    "question": "Quels sont les objectifs de la formation de technicien supérieur système et réseaux ?",
+    "answer": "D'après le texte, l'objectif de la formation est de former des techniciens supérieurs capables de participer à la mise en service et au maintien en condition opérationnelle de l'infrastructure informatique. Ils interviennent sur les systèmes et réseaux, les éléments matériels et logiciels, afin d'offrir aux utilisateurs et clients le niveau de service attendu par l'entreprise."
+  },
+  {
+    "question": "Quelles sont les principales missions du technicien supérieur système et réseaux ?",
+    "answer": "Selon le texte, les principales missions du technicien supérieur système et réseaux sont :\n\n1. Participer à la mise en service et au maintien en condition opérationnelle de l'infrastructure informatique.\n2. Intervenir sur les systèmes et réseaux, les éléments matériels et logiciels.\n3. Offrir aux utilisateurs et clients le niveau de service attendu par l'entreprise.\n4. Adopter une démarche structurée de résolution de problème.\n5. Assurer une veille informatique pour se tenir au courant des évolutions techniques."
+  },
+  {
+    "question": "Quels sont les blocs de compétences de la formation ?",
+    "answer": "D'après le texte, la formation de technicien supérieur système et réseaux comporte deux blocs de compétences :\n\n1. Exploiter les éléments de l'infrastructure et assurer le support aux utilisateurs.\n2. Maintenir l'infrastructure et contribuer à son évolution et sa sécurisation."
+  },
+  {
+    "question": "Quelles sont les poursuites d'études et passerelles possibles après cette formation ?",
+    "answer": "Le texte indique qu'après cette formation de technicien supérieur système et réseaux, il est possible de poursuivre avec un Bachelor Réseau et Cybersécurité en alternance (titre RNCP niveau 6)."
+  },
+  {
+    "question": "Quels sont les débouchés professionnels pour un technicien supérieur système et réseaux ?",
+    "answer": "D'après le texte, les techniciens supérieurs système et réseaux peuvent travailler dans les secteurs d'activités suivants, sans plus de détails."
+  },
+  {
+    "question": "Quelles sont les méthodes pédagogiques utilisées dans cette formation ?",
+    "answer": "Le texte ne fournit pas d'informations spécifiques sur les méthodes pédagogiques utilisées dans cette formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Comment se déroulent les modalités d'évaluation et la préparation aux examens ?",
+    "answer": "Le texte ne donne pas de détails sur les modalités d'évaluation et la préparation aux examens pour cette formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Quelles sont les modalités pédagogiques de cette formation ?",
+    "answer": "Le texte ne fournit pas d'informations sur les modalités pédagogiques de la formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Où puis-je trouver plus d'informations sur l'établissement et les formations proposées ?",
+    "answer": "Le texte indique que l'on peut découvrir d'autres formations proposées par l'établissement, comme le Bachelor Designer Numérique en alternance, le Concepteur Développeur Intégrateur IA, le Bachelor Développeur Informatique, etc."
+  },
+  {
+    "question": "Quel est le taux de réussite de cette formation ?",
+    "answer": "Le texte ne mentionne pas le taux de réussite spécifique pour la formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Cette formation est-elle accessible aux personnes en situation de handicap ?",
+    "answer": "Oui, d'après le texte, l'ensemble des formations proposées par l'établissement sont accessibles aux personnes en situation de handicap, après étude des possibilités d'aménagement."
+  },
+  {
+    "question": "Combien d'heures de formation sont prévues au total ?",
+    "answer": "Le texte indique que le nombre total d'heures de formation est de 1113 heures."
+  },
+  {
+    "question": "Quels sont les secteurs d'activités dans lesquels peuvent travailler les techniciens supérieurs système et réseaux ?",
+    "answer": "Le texte ne fournit pas de détails sur les secteurs d'activités spécifiques dans lesquels peuvent travailler les techniciens supérieurs système et réseaux."
+  },
+  {
+    "question": "Qui a conçu ces formations avec le Campus MNS ?",
+    "answer": "D'après le texte, ces formations ont été conçues avec des professionnels et des organisations qui fédèrent les acteurs du numérique, sans plus de précisions."
+  },
+  {
+    "question": "Quelle est la durée du Bachelor Réseau et Cybersécurité en alternance ?",
+    "answer": "Le texte ne mentionne pas la durée du Bachelor Réseau et Cybersécurité en alternance, il indique seulement qu'il s'agit d'un titre RNCP de niveau 6."
+   },
+  {
+    "question": "Quels sont les avantages de suivre une formation avec le Campus MNS ?",
+    "answer": "D'après le texte, les formations proposées par le Campus MNS permettent de 'digitaliser' votre carrière, sans plus de détails."
+  },
+  {
+    "question": "Quelles sont les modalités de suivi et d'évaluation de la formation ?",
+    "answer": "Le texte ne fournit pas d'informations sur les modalités de suivi et d'évaluation de la formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Comment puis-je obtenir plus d'informations sur la formation de technicien supérieur système et réseaux ?",
+    "answer": "Le texte indique que vous pouvez contacter l'établissement pour obtenir plus d'informations sur la formation."
+  },
+  {
+    "question": "Quels sont les horaires de formation ?",
+    "answer": "Le texte ne fournit pas d'informations sur les horaires de formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Quels sont les matériaux de formation fournis ?",
+    "answer": "Le texte ne mentionne pas les matériaux de formation fournis pour la formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Existe-t-il des possibilités de financement pour cette formation ?",
+    "answer": "Le texte ne fournit pas d'informations sur les possibilités de financement pour la formation de technicien supérieur système et réseaux."
+  },
+  {
+    "question": "Quels sont les avantages de suivre une formation en alternance ?",
+    "answer": "D'après le texte, les formations en alternance permettent de travailler tout en suivant sa formation, sans plus de détails."
+  }
+]
+  
+}

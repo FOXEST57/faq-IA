@@ -10,13 +10,21 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=True)
 
+from datetime import datetime
+from backend import db
+
 class FAQ(db.Model):
+    __tablename__ = 'faq'
+    
     id = db.Column(db.Integer, primary_key=True)
-    question = db.Column(db.Text, nullable=False)
+    question = db.Column(db.String(500), nullable=False)
     answer = db.Column(db.Text, nullable=False)
-    source = db.Column(db.String(20), nullable=False)  # 'manuel' ou 'ia'
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    updated_at = db.Column(db.DateTime, onupdate=db.func.now())
+    source = db.Column(db.String(50), default='manual')  # 'manual' or 'ai'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<FAQ {self.id}: {self.question}>'
 
 class PDFDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)
