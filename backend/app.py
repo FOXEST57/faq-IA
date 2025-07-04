@@ -4,6 +4,7 @@ from view.faq import faq_bp
 from view.pdf import pdf_bp
 from models import db, User, FAQ, PDFDocument, VisitLog, AdminActionLog
 from config import config
+from utils.visit_logger import setup_visit_logging
 import os
 import flask
 from werkzeug.security import check_password_hash
@@ -14,7 +15,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not session.get('user_id') or not session.get('is_admin'):
             flash("Accès réservé aux administrateurs.", "danger")
-            return redirect(url_for('login'))
+            return redirect('/login')
         return f(*args, **kwargs)
     return decorated_function
 
@@ -27,6 +28,9 @@ def create_app(config_name=None):
     app.config.from_object(config[config_name])
 
     db.init_app(app)
+
+    # Configuration de la journalisation des visites
+    setup_visit_logging(app)
 
     # Filtre Jinja2 personnalisé pour convertir les sauts de ligne en <br>
     @app.template_filter('nl2br')
@@ -105,6 +109,32 @@ def create_app(config_name=None):
         db.session.commit()
         flash("Utilisateur supprimé avec succès.", "success")
         return redirect(url_for('admin_users'))
+
+    @app.route('/admin/logs')
+    @admin_required
+    def admin_logs():
+        from datetime import datetime, timedelta
+
+        # Pagination
+        page = request.args.get('page', 1, type=int)
+        per_page = 50  # 50 visites par page
+
+        # Statistiques
+        total_visits = VisitLog.query.count()
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        visits_today = VisitLog.query.filter(VisitLog.timestamp >= yesterday).count()
+
+        # Récupération des logs avec pagination
+        pagination = VisitLog.query.order_by(VisitLog.timestamp.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        visits = pagination.items
+
+        return render_template('admin_logs.html',
+                             visits=visits,
+                             pagination=pagination,
+                             total_visits=total_visits,
+                             visits_today=visits_today)
 
     app.register_blueprint(faq_bp)
     app.register_blueprint(pdf_bp)

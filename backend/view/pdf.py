@@ -86,15 +86,21 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not session.get('user_id') or not session.get('is_admin'):
             flash("Accès réservé aux administrateurs.", "danger")
-            return redirect(url_for('login'))
+            return redirect('/login')  # URL directe au lieu de url_for
         return f(*args, **kwargs)
     return decorated_function
 
 @pdf_bp.route('/admin/pdfs')
 @admin_required
 def admin_pdf_list():
-    pdfs = PDFDocument.query.order_by(PDFDocument.upload_date.desc()).all()
-    return render_template('admin_pdf_list.html', pdfs=pdfs)
+    try:
+        pdfs = PDFDocument.query.order_by(PDFDocument.upload_date.desc()).all()
+        print(f"DEBUG: Nombre de PDFs trouvés: {len(pdfs)}")  # Pour debug
+        return render_template('admin_pdf_list.html', pdfs=pdfs)
+    except Exception as e:
+        print(f"DEBUG: Erreur dans admin_pdf_list: {e}")
+        flash(f"Erreur lors du chargement des PDF: {str(e)}", "danger")
+        return render_template('admin_pdf_list.html', pdfs=[])
 
 @pdf_bp.route('/admin/pdfs/upload', methods=['GET', 'POST'])
 @admin_required
