@@ -5,6 +5,7 @@ from view.pdf import pdf_bp
 from models import db, User, FAQ, PDFDocument, VisitLog, AdminActionLog
 from config import config
 import os
+import flask
 
 def create_app(config_name=None):
     """Factory pour créer l'application Flask"""
@@ -30,6 +31,17 @@ def create_app(config_name=None):
         """Page d'accueil qui affiche l'interface FAQ"""
         faqs = FAQ.query.order_by(FAQ.created_at.desc()).all()
         return render_template('faq_list.html', faqs=faqs)
+
+    @app.route('/contact', methods=['GET', 'POST'])
+    def contact():
+        if flask.request.method == 'POST':
+            # Ici, tu pourrais traiter le formulaire (envoyer un mail, stocker, etc.)
+            name = flask.request.form.get('name')
+            email = flask.request.form.get('email')
+            message = flask.request.form.get('message')
+            # Pour l'instant, on affiche juste un message de confirmation
+            return render_template('contact.html', success=True, name=name)
+        return render_template('contact.html')
 
     app.register_blueprint(faq_bp)
     app.register_blueprint(pdf_bp)
