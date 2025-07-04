@@ -13,6 +13,20 @@ class OllamaRAGService:
         self.model = model
         self.logger = logging.getLogger(__name__)
 
+        # Vérifier si le modèle existe, sinon utiliser un modèle de fallback
+        available_models = self.get_available_models()
+        if self.model not in available_models:
+            self.logger.warning(f"Modèle {self.model} non disponible")
+            # Essayer des modèles plus petits
+            fallback_models = ["llama3.2:1b", "llama3.1", "llama3", "gemma:2b", "phi"]
+            for fallback in fallback_models:
+                if fallback in available_models:
+                    self.model = fallback
+                    self.logger.info(f"Utilisation du modèle de fallback: {fallback}")
+                    break
+            else:
+                self.logger.error("Aucun modèle compatible trouvé")
+
     def check_ollama_connection(self) -> bool:
         """Vérifie si Ollama est accessible"""
         try:
