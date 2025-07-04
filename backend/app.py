@@ -136,6 +136,48 @@ def create_app(config_name=None):
                              total_visits=total_visits,
                              visits_today=visits_today)
 
+    @app.route('/admin/dashboard')
+    @admin_required
+    def admin_dashboard():
+        from datetime import datetime, timedelta
+        from sqlalchemy import func
+
+        # Statistiques générales
+        stats = {
+            'total_faqs': FAQ.query.count(),
+            'total_pdfs': PDFDocument.query.count(),
+            'total_users': User.query.count(),
+            'total_visits': VisitLog.query.count(),
+            'manual_faqs': FAQ.query.filter_by(source='manuel').count(),
+            'ia_faqs': FAQ.query.filter_by(source='ia').count()
+        }
+
+        # Statistiques des visites par période
+        now = datetime.utcnow()
+        today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+
+        stats['visits_today'] = VisitLog.query.filter(VisitLog.timestamp >= today).count()
+        stats['visits_week'] = VisitLog.query.filter(VisitLog.timestamp >= week_ago).count()
+        stats['visits_month'] = VisitLog.query.filter(VisitLog.timestamp >= month_ago).count()
+
+        # Pages les plus visitées
+        top_pages = db.session.query(
+            VisitLog.url,
+            func.count(VisitLog.id).label('count')
+        ).group_by(VisitLog.url).order_by(func.count(VisitLog.id).desc()).limit(10).all()
+
+        # Activité récente
+        recent_faqs = FAQ.query.order_by(FAQ.created_at.desc()).limit(5).all()
+        recent_pdfs = PDFDocument.query.order_by(PDFDocument.upload_date.desc()).limit(5).all()
+
+        return render_template('admin_dashboard.html',
+                             stats=stats,
+                             top_pages=top_pages,
+                             recent_faqs=recent_faqs,
+                             recent_pdfs=recent_pdfs)
+
     app.register_blueprint(faq_bp)
     app.register_blueprint(pdf_bp)
 
