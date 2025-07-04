@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Ajouter un administrateur</h2>
+<form method="post">
+    <div class="mb-3">
+        <label for="username" class="form-label">Nom d'utilisateur</label>
+        <input type="text" class="form-control" id="username" name="username" required>
+    </div>
+    <div class="mb-3">
+        <label for="password" class="form-label">Mot de passe</label>
+        <input type="password" class="form-control" id="password" name="password" required>
+    </div>
+    <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="is_admin" name="is_admin" checked>
+        <label class="form-check-label" for="is_admin">Administrateur</label>
+    </div>
+    <button type="submit" class="btn btn-primary">Ajouter</button>
+    <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Annuler</a>
+</form>
+{% endblock %}
+
