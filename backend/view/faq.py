@@ -121,3 +121,31 @@ def admin_add_faq():
         flash("Question ajoutée avec succès.", "success")
         return redirect(url_for('faq.admin_faq_list'))
     return render_template('admin_faq_form.html')
+
+@faq_bp.route('/admin/faqs/edit/<int:faq_id>', methods=['GET', 'POST'])
+@admin_required
+def admin_edit_faq(faq_id):
+    faq = FAQ.query.get_or_404(faq_id)
+    if request.method == 'POST':
+        question = request.form.get('question')
+        answer = request.form.get('answer')
+        source = request.form.get('source', 'manuel')
+        if not question or not answer:
+            flash("Question et réponse requises.", "danger")
+            return render_template('admin_faq_form.html', faq=faq, edit=True)
+        faq.question = question
+        faq.answer = answer
+        faq.source = source
+        db.session.commit()
+        flash("Question modifiée avec succès.", "success")
+        return redirect(url_for('faq.admin_faq_list'))
+    return render_template('admin_faq_form.html', faq=faq, edit=True)
+
+@faq_bp.route('/admin/faqs/delete/<int:faq_id>', methods=['POST'])
+@admin_required
+def admin_delete_faq(faq_id):
+    faq = FAQ.query.get_or_404(faq_id)
+    db.session.delete(faq)
+    db.session.commit()
+    flash("Question supprimée avec succès.", "success")
+    return redirect(url_for('faq.admin_faq_list'))

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Gestion des administrateurs</h2>
+<a href="{{ url_for('add_user') }}" class="btn btn-success mb-3">Ajouter un administrateur</a>
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nom d'utilisateur</th>
+            <th>Admin</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users %}
+        <tr>
+            <td>{{ user.id }}</td>
+            <td>{{ user.username }}</td>
+            <td>{% if user.is_admin %}<span class="badge bg-primary">Oui</span>{% else %}Non{% endif %}</td>
+            <td>
+                <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-warning">Modifier</a>
+                <a href="{{ url_for('delete_user', user_id=user.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Supprimer cet utilisateur ?');">Supprimer</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+

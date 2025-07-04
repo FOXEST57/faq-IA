@@ -247,24 +247,14 @@ server {
 # Script de démarrage pour Gunicorn
 # Usage: ./start_gunicorn.sh
 
-cd /home/tom/Bureau/ia_faq/backend
+cd /home/tom/Documents/faq-IA/backend
 
 # Activer l'environnement virtuel
-source .venv/bin/activate
+source venv/bin/activate
 
 # Démarrer Gunicorn
-gunicorn --bind 127.0.0.1:8000 \
-         --workers 4 \
-         --worker-class sync \
-         --timeout 300 \
-         --keep-alive 2 \
-         --max-requests 1000 \
-         --max-requests-jitter 100 \
-         --access-logfile /var/log/gunicorn/access.log \
-         --error-logfile /var/log/gunicorn/error.log \
-         --log-level info \
-         --daemon \
-         app:app
+# (ou utilisez le fichier de config gunicorn.conf.py déjà présent)
+gunicorn --config gunicorn.conf.py app:app
 ```
 
 ### Étapes de déploiement
@@ -283,7 +273,7 @@ sudo apt install python3 python3-pip python3-venv
 
 ```bash
 # Aller dans le dossier backend
-cd /home/tom/Bureau/ia_faq/backend
+cd /home/tom/Documents/faq-IA/backend
 
 # Installer les dépendances (y compris Gunicorn)
 pip install -r requirements.txt

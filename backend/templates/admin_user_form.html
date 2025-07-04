@@ -1,21 +1,20 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Ajouter un administrateur</h2>
+<h2>{% if edit %}Modifier{% else %}Ajouter{% endif %} un administrateur</h2>
 <form method="post">
     <div class="mb-3">
         <label for="username" class="form-label">Nom d'utilisateur</label>
-        <input type="text" class="form-control" id="username" name="username" required>
+        <input type="text" class="form-control" id="username" name="username" required value="{{ user.username if user else '' }}">
     </div>
     <div class="mb-3">
-        <label for="password" class="form-label">Mot de passe</label>
-        <input type="password" class="form-control" id="password" name="password" required>
+        <label for="password" class="form-label">Mot de passe {% if edit %}(laisser vide pour ne pas changer){% endif %}</label>
+        <input type="password" class="form-control" id="password" name="password" {% if not edit %}required{% endif %}>
     </div>
     <div class="mb-3 form-check">
-        <input type="checkbox" class="form-check-input" id="is_admin" name="is_admin" checked>
+        <input type="checkbox" class="form-check-input" id="is_admin" name="is_admin" {% if user and user.is_admin or not user %}checked{% endif %}>
         <label class="form-check-label" for="is_admin">Administrateur</label>
     </div>
-    <button type="submit" class="btn btn-primary">Ajouter</button>
+    <button type="submit" class="btn btn-primary">{% if edit %}Modifier{% else %}Ajouter{% endif %}</button>
     <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Annuler</a>
 </form>
 {% endblock %}
-

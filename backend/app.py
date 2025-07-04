@@ -7,6 +7,16 @@ from config import config
 import os
 import flask
 from werkzeug.security import check_password_hash
+from functools import wraps
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('user_id') or not session.get('is_admin'):
+            flash("Accès réservé aux administrateurs.", "danger")
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def create_app(config_name=None):
     """Factory pour créer l'application Flask"""
@@ -32,48 +42,6 @@ def create_app(config_name=None):
         """Page d'accueil qui affiche l'interface FAQ"""
         faqs = FAQ.query.order_by(FAQ.created_at.desc()).all()
         return render_template('faq_list.html', faqs=faqs)
-
-    @app.route('/contact', methods=['GET', 'POST'])
-    def contact():
-        if flask.request.method == 'POST':
-            # Ici, tu pourrais traiter le formulaire (envoyer un mail, stocker, etc.)
-            name = flask.request.form.get('name')
-            email = flask.request.form.get('email')
-            message = flask.request.form.get('message')
-            # Pour l'instant, on affiche juste un message de confirmation
-            return render_template('contact.html', success=True, name=name)
-        return render_template('contact.html')
-
-    @app.route('/login', methods=['GET', 'POST'])
-    def login():
-        if request.method == 'POST':
-            username = request.form.get('username')
-            password = request.form.get('password')
-            user = User.query.filter_by(username=username).first()
-            if user and check_password_hash(user.password_hash, password):
-                session['user_id'] = user.id
-                session['is_admin'] = user.is_admin
-                flash('Connexion réussie.', 'success')
-                return redirect(url_for('faq.faq_list'))
-            else:
-                return render_template('login.html', error="Nom d'utilisateur ou mot de passe incorrect.")
-        return render_template('login.html')
-
-    @app.route('/logout')
-    def logout():
-        session.clear()
-        flash('Déconnexion réussie.', 'info')
-        return redirect(url_for('faq.faq_list'))
-
-    from functools import wraps
-    def admin_required(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if not session.get('user_id') or not session.get('is_admin'):
-                flash("Accès réservé aux administrateurs.", "danger")
-                return redirect(url_for('login'))
-            return f(*args, **kwargs)
-        return decorated_function
 
     @app.route('/admin/users')
     @admin_required
@@ -147,6 +115,36 @@ def create_app(config_name=None):
 
 # Pour compatibilité avec Gunicorn
 app = create_app()
+
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        message = request.form.get('message')
+        return render_template('contact.html', success=True, name=name)
+    return render_template('contact.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and password == user.password_hash:  # Temporaire: comparaison directe car mot de passe en clair
+            session['user_id'] = user.id
+            session['is_admin'] = user.is_admin
+            flash('Connexion réussie.', 'success')
+            return redirect(url_for('faq.faq_list'))
+        else:
+            return render_template('login.html', error="Nom d'utilisateur ou mot de passe incorrect.")
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Déconnexion réussie.', 'info')
+    return redirect(url_for('faq.faq_list'))
 
 if __name__ == '__main__':
     # Mode développement seulement
