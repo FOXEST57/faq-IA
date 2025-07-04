@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from models import db, PDFDocument
 import fitz  # PyMuPDF pour l'extraction de texte
 from functools import wraps
+from utils.ollama_rag import OllamaRAGService
 
 # Création d'un blueprint Flask pour la gestion des PDF
 pdf_bp = Blueprint('pdf', __name__)
@@ -147,3 +148,78 @@ def admin_delete_pdf(pdf_id):
     db.session.commit()
     flash('PDF supprimé avec succès.', 'success')
     return redirect(url_for('pdf.admin_pdf_list'))
+
+@pdf_bp.route('/admin/ia/generation')
+@admin_required
+def admin_ia_generation():
+    """Interface de génération de FAQ par IA"""
+    # Vérifier le statut d'Ollama
+    rag_service = OllamaRAGService()
+    ollama_status = rag_service.check_ollama_connection()
+    current_model = rag_service.model if ollama_status else "Non disponible"
+
+    # Récupérer les PDF disponibles
+    pdfs = PDFDocument.query.order_by(PDFDocument.upload_date.desc()).all()
+
+    # Récupérer les FAQ générées en attente (on pourrait ajouter un champ status plus tard)
+    pending_faqs = []  # Pour l'instant, on peut utiliser les FAQ avec source='ia' récentes
+
+    return render_template('admin_ia_generation.html',
+                         ollama_status=ollama_status,
+                         current_model=current_model,
+                         pdfs=pdfs,
+                         pending_faqs=pending_faqs)
+
+@pdf_bp.route('/admin/ia/generate-faq', methods=['POST'])
+@admin_required
+def generate_faq_from_pdf():
+    """Génère des FAQ à partir d'un PDF sélectionné"""
+    pdf_id = request.form.get('pdf_id')
+    if not pdf_id:
+        flash('Veuillez sélectionner un PDF.', 'danger')
+        return redirect(url_for('pdf.admin_ia_generation'))
+
+    pdf_doc = PDFDocument.query.get_or_404(pdf_id)
+    pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
+
+    if not os.path.exists(pdf_path):
+        flash('Fichier PDF introuvable.', 'danger')
+        return redirect(url_for('pdf.admin_ia_generation'))
+
+    try:
+        # Initialiser le service RAG
+        rag_service = OllamaRAGService()
+
+        # Vérifier la connexion Ollama
+        if not rag_service.check_ollama_connection():
+            flash('Ollama n\'est pas disponible. Vérifiez le service.', 'danger')
+            return redirect(url_for('pdf.admin_ia_generation'))
+
+        # Générer les FAQ
+        generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
+
+        if not generated_faqs:
+            flash('Aucune FAQ générée. Le document pourrait être trop court ou illisible.', 'warning')
+            return redirect(url_for('pdf.admin_ia_generation'))
+
+        # Sauvegarder les FAQ générées
+        saved_count = 0
+        for faq_data in generated_faqs:
+            if faq_data.get('question') and faq_data.get('answer'):
+                faq = FAQ(
+                    question=faq_data['question'],
+                    answer=faq_data['answer'],
+                    source='ia'
+                )
+                db.session.add(faq)
+                saved_count += 1
+
+        db.session.commit()
+
+        flash(f'{saved_count} FAQ générées avec succès à partir du document {pdf_doc.filename}.', 'success')
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Erreur lors de la génération: {str(e)}', 'danger')
+
+    return redirect(url_for('pdf.admin_ia_generation'))
