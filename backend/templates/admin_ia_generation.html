@@ -26,11 +26,11 @@
                             <p class="mb-2">
                                 <strong>Connexion Ollama:</strong>
                                 {% if ollama_status %}
-                                    <span class="badge badge-success">
+                                    <span class="badge bg-success text-white">
                                         <i class="fas fa-check-circle"></i> Connecté
                                     </span>
                                 {% else %}
-                                    <span class="badge badge-danger">
+                                    <span class="badge bg-danger text-white">
                                         <i class="fas fa-times-circle"></i> Déconnecté
                                     </span>
                                 {% endif %}
@@ -39,7 +39,7 @@
                         <div class="col-md-6">
                             <p class="mb-2">
                                 <strong>Modèle actuel:</strong>
-                                <span class="badge badge-info">{{ current_model }}</span>
+                                <span class="badge bg-primary text-white">{{ current_model }}</span>
                             </p>
                         </div>
                     </div>

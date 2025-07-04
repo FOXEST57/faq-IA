@@ -1,9 +1,9 @@
 # Ajout d'un blueprint Flask pour l'upload et la gestion des PDF (upload et listing).
 
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session, current_app
 import os
 from werkzeug.utils import secure_filename
-from models import db, PDFDocument
+from models import db, PDFDocument, FAQ
 import fitz  # PyMuPDF pour l'extraction de texte
 from functools import wraps
 from utils.ollama_rag import OllamaRAGService
@@ -195,8 +195,13 @@ def generate_faq_from_pdf():
             flash('Ollama n\'est pas disponible. Vérifiez le service.', 'danger')
             return redirect(url_for('pdf.admin_ia_generation'))
 
+        # Log pour déboguer
+        current_app.logger.info(f"Début de génération FAQ pour PDF: {pdf_doc.filename}")
+
         # Générer les FAQ
         generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
+
+        current_app.logger.info(f"FAQ générées: {len(generated_faqs) if generated_faqs else 0}")
 
         if not generated_faqs:
             flash('Aucune FAQ générée. Le document pourrait être trop court ou illisible.', 'warning')
@@ -220,6 +225,7 @@ def generate_faq_from_pdf():
 
     except Exception as e:
         db.session.rollback()
+        current_app.logger.error(f'Erreur lors de la génération: {str(e)}')
         flash(f'Erreur lors de la génération: {str(e)}', 'danger')
 
     return redirect(url_for('pdf.admin_ia_generation'))
