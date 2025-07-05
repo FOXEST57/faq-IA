@@ -173,7 +173,7 @@ def admin_ia_generation():
 @pdf_bp.route('/admin/ia/generate-faq', methods=['POST'])
 @admin_required
 def generate_faq_from_pdf():
-    """Génère des FAQ à partir d'un PDF sélectionné"""
+    """Génère des FAQ à partir d'un PDF sélectionné avec réponse immédiate"""
     try:
         current_app.logger.info("=== DÉBUT GÉNÉRATION FAQ ===")
 
@@ -212,49 +212,53 @@ def generate_faq_from_pdf():
 
         current_app.logger.info(f"Modèle Ollama utilisé: {rag_service.model}")
 
-        # Générer les FAQ avec gestion d'erreur robuste
-        current_app.logger.info("Début de la génération FAQ...")
-        try:
-            generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
-            current_app.logger.info(f"Génération terminée. FAQ générées: {len(generated_faqs) if generated_faqs else 0}")
-        except Exception as rag_error:
-            current_app.logger.error(f"Erreur lors de la génération RAG: {str(rag_error)}")
-            flash(f'Erreur lors de la génération IA: {str(rag_error)}', 'danger')
-            return redirect(url_for('pdf.admin_ia_generation'))
+        # RÉPONSE IMMÉDIATE AVANT LA GÉNÉRATION
+        # On redirige immédiatement avec un message de traitement en cours
+        flash('Génération de FAQ en cours... Les nouvelles FAQ apparaîtront dans quelques instants.', 'info')
 
-        if not generated_faqs:
-            current_app.logger.warning("Aucune FAQ générée")
-            flash('Aucune FAQ générée. Le document pourrait être trop court ou illisible.', 'warning')
-            return redirect(url_for('pdf.admin_ia_generation'))
+        # Traitement de la génération en arrière-plan (simulation asynchrone)
+        import threading
 
-        # Sauvegarder les FAQ générées
-        current_app.logger.info("Sauvegarde des FAQ en base de données...")
-        saved_count = 0
-        try:
-            for i, faq_data in enumerate(generated_faqs):
-                current_app.logger.info(f"Traitement FAQ {i+1}/{len(generated_faqs)}")
-                if faq_data.get('question') and faq_data.get('answer'):
-                    faq = FAQ(
-                        question=faq_data['question'],
-                        answer=faq_data['answer'],
-                        source='ia'
-                    )
-                    db.session.add(faq)
-                    saved_count += 1
+        def process_generation():
+            try:
+                # Générer les FAQ avec gestion d'erreur robuste
+                current_app.logger.info("Début de la génération FAQ en arrière-plan...")
+                generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
+                current_app.logger.info(f"Génération terminée. FAQ générées: {len(generated_faqs) if generated_faqs else 0}")
 
-            db.session.commit()
-            current_app.logger.info(f"Sauvegarde terminée. {saved_count} FAQ sauvegardées")
+                if generated_faqs:
+                    # Sauvegarder les FAQ générées
+                    current_app.logger.info("Sauvegarde des FAQ en base de données...")
+                    saved_count = 0
 
-            flash(f'{saved_count} FAQ générées avec succès à partir du document {pdf_doc.filename}.', 'success')
+                    with current_app.app_context():
+                        for i, faq_data in enumerate(generated_faqs):
+                            current_app.logger.info(f"Traitement FAQ {i+1}/{len(generated_faqs)}")
+                            if faq_data.get('question') and faq_data.get('answer'):
+                                faq = FAQ(
+                                    question=faq_data['question'],
+                                    answer=faq_data['answer'],
+                                    source='ia'
+                                )
+                                db.session.add(faq)
+                                saved_count += 1
 
-        except Exception as db_error:
-            db.session.rollback()
-            current_app.logger.error(f'Erreur lors de la sauvegarde: {str(db_error)}')
-            flash(f'Erreur lors de la sauvegarde: {str(db_error)}', 'danger')
+                        db.session.commit()
+                        current_app.logger.info(f"Sauvegarde terminée. {saved_count} FAQ sauvegardées")
 
-        current_app.logger.info("=== FIN GÉNÉRATION FAQ ===")
+                current_app.logger.info("=== FIN GÉNÉRATION FAQ EN ARRIÈRE-PLAN ===")
 
-        # Optimisation : réponse rapide pour éviter le timeout
+            except Exception as bg_error:
+                current_app.logger.error(f'Erreur lors de la génération en arrière-plan: {str(bg_error)}')
+
+        # Lancer le traitement en arrière-plan
+        thread = threading.Thread(target=process_generation)
+        thread.daemon = True
+        thread.start()
+
+        current_app.logger.info("=== RÉPONSE IMMÉDIATE ENVOYÉE ===")
+
+        # Redirection immédiate pour éviter le timeout
         return redirect(url_for('pdf.admin_ia_generation'))
 
     except Exception as e:
