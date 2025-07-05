@@ -7,6 +7,8 @@ from models import db, PDFDocument, FAQ
 import fitz  # PyMuPDF pour l'extraction de texte
 from functools import wraps
 from utils.ollama_rag import OllamaRAGService
+from utils.task_manager import task_manager
+import threading
 
 # Création d'un blueprint Flask pour la gestion des PDF
 pdf_bp = Blueprint('pdf', __name__)
@@ -170,87 +172,35 @@ def admin_ia_generation():
                          pdfs=pdfs,
                          pending_faqs=pending_faqs)
 
-# Route API pour lancer la génération en arrière-plan
-@pdf_bp.route('/api/ia/generate-faq', methods=['POST'])
-@admin_required
-def api_generate_faq():
-    """API pour lancer la génération de FAQ en arrière-plan"""
+# Fonction pour exécuter la génération en arrière-plan
+def _generate_faq_background(task_id: str, pdf_path: str, pdf_filename: str):
+    """Fonction pour générer les FAQ en arrière-plan"""
     try:
-        pdf_id = request.json.get('pdf_id')
-        if not pdf_id:
-            return jsonify({'success': False, 'message': 'PDF ID manquant'}), 400
+        with current_app.app_context():
+            # Démarrer la tâche
+            task_manager.start_task(task_id)
+            task_manager.update_task(task_id, progress=10, message="Initialisation du service IA...")
 
-        pdf_doc = PDFDocument.query.get_or_404(pdf_id)
-        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
-
-        if not os.path.exists(pdf_path):
-            return jsonify({'success': False, 'message': 'Fichier PDF introuvable'}), 404
-
-        # Réponse immédiate
-        return jsonify({
-            'success': True,
-            'message': 'Génération lancée',
-            'pdf_name': pdf_doc.filename
-        }), 202
-
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
-# Route API pour vérifier le statut et lancer la génération réelle
-@pdf_bp.route('/api/ia/process-faq', methods=['POST'])
-@admin_required
-def api_process_faq():
-    """API pour traiter la génération FAQ"""
-    try:
-        current_app.logger.info("=== DÉBUT API PROCESS FAQ ===")
-
-        pdf_id = request.json.get('pdf_id')
-        if not pdf_id:
-            return jsonify({'success': False, 'message': 'PDF ID manquant'}), 400
-
-        current_app.logger.info(f"PDF ID reçu: {pdf_id}")
-
-        pdf_doc = PDFDocument.query.get_or_404(pdf_id)
-        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
-
-        current_app.logger.info(f"Fichier PDF: {pdf_path}")
-
-        if not os.path.exists(pdf_path):
-            return jsonify({'success': False, 'message': 'Fichier PDF introuvable'}), 404
-
-        # Initialiser le service RAG avec gestion d'erreur
-        current_app.logger.info("Initialisation du service RAG...")
-        try:
+            # Initialiser le service RAG
             rag_service = OllamaRAGService()
-        except Exception as e:
-            current_app.logger.error(f"Erreur initialisation RAG: {e}")
-            return jsonify({'success': False, 'message': f'Erreur initialisation IA: {str(e)}'}), 500
 
-        # Vérifier la connexion Ollama
-        current_app.logger.info("Vérification connexion Ollama...")
-        if not rag_service.check_ollama_connection():
-            current_app.logger.error("Ollama non disponible")
-            return jsonify({'success': False, 'message': 'Service IA non disponible'}), 500
+            if not rag_service.check_ollama_connection():
+                task_manager.fail_task(task_id, "Service IA non disponible")
+                return
 
-        current_app.logger.info(f"Modèle utilisé: {rag_service.model}")
+            task_manager.update_task(task_id, progress=20, message="Analyse du document PDF...")
 
-        # Génération des FAQ avec timeout et gestion d'erreur
-        current_app.logger.info("Début génération FAQ...")
-        try:
+            # Générer les FAQ
             generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
-            current_app.logger.info(f"FAQ générées: {len(generated_faqs) if generated_faqs else 0}")
-        except Exception as e:
-            current_app.logger.error(f"Erreur génération FAQ: {e}")
-            return jsonify({'success': False, 'message': f'Erreur lors de la génération: {str(e)}'}), 500
 
-        if not generated_faqs:
-            current_app.logger.warning("Aucune FAQ générée")
-            return jsonify({'success': False, 'message': 'Aucune FAQ générée à partir du document'}), 400
+            if not generated_faqs:
+                task_manager.fail_task(task_id, "Aucune FAQ générée à partir du document")
+                return
 
-        # Sauvegarder les FAQ
-        current_app.logger.info("Sauvegarde des FAQ...")
-        saved_count = 0
-        try:
+            task_manager.update_task(task_id, progress=80, message="Sauvegarde des FAQ...")
+
+            # Sauvegarder les FAQ
+            saved_count = 0
             for faq_data in generated_faqs:
                 if faq_data.get('question') and faq_data.get('answer'):
                     faq = FAQ(
@@ -260,24 +210,93 @@ def api_process_faq():
                     )
                     db.session.add(faq)
                     saved_count += 1
-                    current_app.logger.info(f"FAQ ajoutée: {faq_data['question'][:50]}...")
 
             db.session.commit()
-            current_app.logger.info(f"Sauvegarde terminée: {saved_count} FAQ")
 
-        except Exception as e:
-            current_app.logger.error(f"Erreur sauvegarde: {e}")
-            db.session.rollback()
-            return jsonify({'success': False, 'message': f'Erreur sauvegarde: {str(e)}'}), 500
+            # Terminer la tâche
+            task_manager.complete_task(task_id, {
+                'saved_count': saved_count,
+                'pdf_filename': pdf_filename,
+                'message': f'{saved_count} FAQ générées avec succès'
+            })
 
-        current_app.logger.info("=== FIN API PROCESS FAQ ===")
+    except Exception as e:
+        task_manager.fail_task(task_id, str(e))
+
+# Route API pour lancer la génération asynchrone
+@pdf_bp.route('/api/ia/start-generation', methods=['POST'])
+@admin_required
+def api_start_generation():
+    """Lance une génération de FAQ en arrière-plan"""
+    try:
+        pdf_id = request.json.get('pdf_id')
+        if not pdf_id:
+            return jsonify({'success': False, 'message': 'PDF ID manquant'}), 400
+
+        pdf_doc = PDFDocument.query.get_or_404(pdf_id)
+        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
+
+        if not os.path.exists(pdf_path):
+            return jsonify({'success': False, 'message': 'Fichier PDF introuvable'}), 404
+
+        # Créer une tâche
+        task_id = task_manager.create_task(
+            'generate_faq',
+            pdf_id=pdf_id,
+            pdf_filename=pdf_doc.filename
+        )
+
+        # Lancer la génération en arrière-plan
+        thread = threading.Thread(
+            target=_generate_faq_background,
+            args=(task_id, pdf_path, pdf_doc.filename)
+        )
+        thread.daemon = True
+        thread.start()
 
         return jsonify({
             'success': True,
-            'message': f'{saved_count} FAQ générées avec succès',
-            'count': saved_count
+            'task_id': task_id,
+            'message': 'Génération lancée en arrière-plan'
         })
 
     except Exception as e:
-        current_app.logger.error(f'Erreur API génération: {e}', exc_info=True)
-        return jsonify({'success': False, 'message': f'Erreur technique: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Route API pour vérifier le statut d'une tâche
+@pdf_bp.route('/api/ia/task-status/<task_id>', methods=['GET'])
+@admin_required
+def api_task_status(task_id):
+    """Récupère le statut d'une tâche"""
+    task = task_manager.get_task(task_id)
+
+    if not task:
+        return jsonify({'success': False, 'message': 'Tâche introuvable'}), 404
+
+    return jsonify({
+        'success': True,
+        'task': {
+            'id': task['id'],
+            'status': task['status'],
+            'progress': task['progress'],
+            'message': task['message'],
+            'result': task['result'],
+            'error': task['error']
+        }
+    })
+
+# Remplacer les anciennes routes par les nouvelles
+@pdf_bp.route('/api/ia/generate-faq', methods=['POST'])
+@admin_required
+def api_generate_faq():
+    """Redirection vers la nouvelle API asynchrone"""
+    return api_start_generation()
+
+@pdf_bp.route('/api/ia/process-faq', methods=['POST'])
+@admin_required
+def api_process_faq():
+    """Route dépréciée - redirection vers le système de tâches"""
+    return jsonify({
+        'success': False,
+        'message': 'Cette route est dépréciée. Utilisez /api/ia/start-generation'
+    }), 410

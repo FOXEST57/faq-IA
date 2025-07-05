@@ -171,9 +171,10 @@ document.addEventListener('DOMContentLoaded', function() {
             resultArea.style.display = 'none';
 
             try {
-                // Étape 1: Lancer la génération
-                console.log('Étape 1: Lancement de la génération pour PDF ID:', pdfId);
-                const response = await fetch('/api/ia/generate-faq', {
+                console.log('Lancement de la génération asynchrone pour PDF ID:', pdfId);
+
+                // Étape 1: Lancer la génération en arrière-plan
+                const response = await fetch('/api/ia/start-generation', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -183,92 +184,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                 });
 
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
-
-                // Vérifier le type de contenu
-                const contentType = response.headers.get('content-type');
-                console.log('Content-Type:', contentType);
-
-                if (!contentType || !contentType.includes('application/json')) {
-                    const textResponse = await response.text();
-                    console.error('Réponse non-JSON reçue:', textResponse);
-                    throw new Error(`Réponse non-JSON reçue du serveur (${response.status}). Contenu: ${textResponse.substring(0, 200)}...`);
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('Data reçue:', data);
+                console.log('Réponse start-generation:', data);
 
                 if (data.success) {
+                    const taskId = data.task_id;
                     generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
 
-                    // Étape 2: Traiter la génération
-                    console.log('Étape 2: Traitement de la génération...');
-                    const processResponse = await fetch('/api/ia/process-faq', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            pdf_id: pdfId
-                        })
-                    });
-
-                    console.log('Process response status:', processResponse.status);
-
-                    const processContentType = processResponse.headers.get('content-type');
-                    console.log('Process Content-Type:', processContentType);
-
-                    if (!processContentType || !processContentType.includes('application/json')) {
-                        const textResponse = await processResponse.text();
-                        console.error('Réponse non-JSON reçue lors du traitement:', textResponse);
-                        throw new Error(`Réponse non-JSON reçue lors du traitement (${processResponse.status}). Contenu: ${textResponse.substring(0, 200)}...`);
-                    }
-
-                    const processData = await processResponse.json();
-                    console.log('Process data reçue:', processData);
-
-                    progressArea.style.display = 'none';
-                    resultArea.style.display = 'block';
-
-                    if (processData.success) {
-                        resultArea.innerHTML = `
-                            <div class="alert alert-success">
-                                <i class="fas fa-check-circle"></i>
-                                <strong>Succès!</strong> ${processData.message}
-                                <br>
-                                <a href="{{ url_for('faq.admin_faq_list') }}" class="btn btn-sm btn-success mt-2">
-                                    <i class="fas fa-eye"></i> Voir les FAQ générées
-                                </a>
-                            </div>
-                        `;
-                    } else {
-                        resultArea.innerHTML = `
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <strong>Erreur:</strong> ${processData.message}
-                            </div>
-                        `;
-                    }
+                    // Étape 2: Surveiller la progression de la tâche
+                    await monitorTask(taskId);
                 } else {
-                    progressArea.style.display = 'none';
-                    resultArea.style.display = 'block';
-                    resultArea.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <strong>Erreur:</strong> ${data.message}
-                        </div>
-                    `;
+                    throw new Error(data.message);
                 }
             } catch (error) {
-                console.error('Erreur complète:', error);
+                console.error('Erreur:', error);
                 progressArea.style.display = 'none';
                 resultArea.style.display = 'block';
                 resultArea.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Erreur technique:</strong> ${error.message}
-                        <br><small>Vérifiez la console du navigateur pour plus de détails.</small>
+                        <strong>Erreur:</strong> ${error.message}
                     </div>
                 `;
             } finally {
@@ -277,6 +216,107 @@ document.addEventListener('DOMContentLoaded', function() {
                 generateBtn.innerHTML = '<i class="fas fa-magic"></i> Générer des FAQ';
             }
         });
+    }
+
+    async function monitorTask(taskId) {
+        const maxAttempts = 120; // 10 minutes maximum (120 * 5 secondes)
+        let attempts = 0;
+
+        const progressBar = progressArea.querySelector('.progress-bar');
+        const progressText = progressArea.querySelector('.alert-info');
+
+        while (attempts < maxAttempts) {
+            try {
+                const response = await fetch(`/api/ia/task-status/${taskId}`);
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Statut tâche:', data);
+
+                if (data.success) {
+                    const task = data.task;
+
+                    // Mettre à jour la barre de progression
+                    if (progressBar) {
+                        progressBar.style.width = `${task.progress}%`;
+                    }
+
+                    // Mettre à jour le message
+                    if (progressText) {
+                        progressText.innerHTML = `
+                            <i class="fas fa-clock"></i>
+                            <strong>${task.message}</strong>
+                            <div class="progress mt-2">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar" style="width: ${task.progress}%"></div>
+                            </div>
+                        `;
+                    }
+
+                    if (task.status === 'completed') {
+                        // Tâche terminée avec succès
+                        progressArea.style.display = 'none';
+                        resultArea.style.display = 'block';
+
+                        const result = task.result;
+                        resultArea.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>Succès!</strong> ${result.message}
+                                <br>
+                                <small>Document traité: ${result.pdf_filename}</small>
+                                <br>
+                                <a href="{{ url_for('faq.admin_faq_list') }}" class="btn btn-sm btn-success mt-2">
+                                    <i class="fas fa-eye"></i> Voir les FAQ générées
+                                </a>
+                            </div>
+                        `;
+                        return;
+
+                    } else if (task.status === 'failed') {
+                        // Tâche échouée
+                        progressArea.style.display = 'none';
+                        resultArea.style.display = 'block';
+                        resultArea.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Erreur:</strong> ${task.error}
+                            </div>
+                        `;
+                        return;
+                    }
+                } else {
+                    throw new Error(data.message);
+                }
+
+                // Attendre 5 secondes avant de vérifier à nouveau
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                attempts++;
+
+            } catch (error) {
+                console.error('Erreur lors de la surveillance:', error);
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 5000));
+            }
+        }
+
+        // Timeout atteint
+        progressArea.style.display = 'none';
+        resultArea.style.display = 'block';
+        resultArea.innerHTML = `
+            <div class="alert alert-warning">
+                <i class="fas fa-clock"></i>
+                <strong>Timeout:</strong> La génération prend plus de temps que prévu.
+                Vérifiez les FAQ dans quelques minutes.
+                <br>
+                <a href="{{ url_for('faq.admin_faq_list') }}" class="btn btn-sm btn-primary mt-2">
+                    <i class="fas fa-eye"></i> Vérifier les FAQ
+                </a>
+            </div>
+        `;
     }
 });
 </script>
