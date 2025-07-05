@@ -141,7 +141,14 @@
                             ({{ training_result.get('metrics', {}).get('training_samples', 0) }} échantillons)
                         </div>
 
+                        <!-- Debug: afficher les prédictions brutes -->
                         {% if predictions %}
+                            <div class="alert alert-info">
+                                <strong>🔧 Debug prédictions :</strong><br>
+                                Nombre de prédictions : {{ predictions|length }}<br>
+                                Données brutes : {{ predictions }}
+                            </div>
+
                             <canvas id="predictionsChart" height="100"></canvas>
 
                             <div class="table-responsive mt-3">
@@ -163,14 +170,22 @@
                                                     <span class="badge badge-success">Élevée</span>
                                                 {% elif pred.confidence == 'medium' %}
                                                     <span class="badge badge-warning">Moyenne</span>
-                                                {% else %}
+                                                {% elif pred.confidence == 'low' %}
                                                     <span class="badge badge-secondary">Faible</span>
+                                                {% else %}
+                                                    <span class="badge badge-dark">{{ pred.confidence }}</span>
                                                 {% endif %}
                                             </td>
                                         </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <strong>Aucune prédiction générée</strong><br>
+                                Variable predictions : {{ predictions }}<br>
+                                Type : {{ predictions.__class__.__name__ if predictions else 'None' }}
                             </div>
                         {% endif %}
                     {% else %}
