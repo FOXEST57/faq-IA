@@ -80,10 +80,11 @@ def test_direct_model_call():
     print("\n=== Test direct d'appel au modèle ===")
 
     try:
+        # Utiliser le modèle gemma:2b qui fonctionne
         response = requests.post(
             "http://localhost:11434/api/generate",
             json={
-                "model": "phi3:mini",
+                "model": "gemma:2b",
                 "prompt": "Bonjour, comment allez-vous ?",
                 "stream": False
             },
