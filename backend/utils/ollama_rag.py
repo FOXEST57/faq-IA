@@ -86,20 +86,18 @@ class OllamaRAGService:
         if not self.check_ollama_connection():
             raise Exception("Ollama n'est pas accessible")
 
-        # Prompt pour générer des FAQ
-        prompt = f"""
-À partir du texte suivant, génère 3 à 5 questions-réponses pertinentes pour une FAQ.
-Format de réponse : utilisez EXACTEMENT ce format JSON :
+        # Prompt simplifié pour phi3:mini
+        prompt = f"""Generate 3 FAQ questions and answers from this text about training courses.
+
+Text: {text[:1500]}
+
+Format your response as JSON array:
 [
-  {{"question": "Question 1?", "answer": "Réponse détaillée 1"}},
-  {{"question": "Question 2?", "answer": "Réponse détaillée 2"}}
+  {{"question": "What is...?", "answer": "This is..."}},
+  {{"question": "How to...?", "answer": "You can..."}}
 ]
 
-Texte source :
-{text[:2000]}...
-
-Générez uniquement le JSON, sans autre texte.
-"""
+Only return valid JSON, no other text."""
 
         try:
             response = requests.post(
@@ -109,36 +107,57 @@ Générez uniquement le JSON, sans autre texte.
                     "prompt": prompt,
                     "stream": False,
                     "options": {
-                        "temperature": 0.7,
-                        "top_p": 0.9,
-                        "max_tokens": 1000
+                        "temperature": 0.3,
+                        "top_p": 0.8,
+                        "num_predict": 800
                     }
                 },
-                timeout=60
+                timeout=120
             )
 
             if response.status_code == 200:
                 result = response.json()
                 generated_text = result.get('response', '')
 
+                self.logger.info(f"Texte généré par Ollama: {generated_text[:200]}...")
+
                 # Tenter de parser le JSON généré
                 try:
                     # Nettoyer le texte généré
                     cleaned_text = generated_text.strip()
-                    if cleaned_text.startswith('```json'):
-                        cleaned_text = cleaned_text[7:]
-                    if cleaned_text.endswith('```'):
-                        cleaned_text = cleaned_text[:-3]
 
-                    faq_list = json.loads(cleaned_text)
-                    return faq_list if isinstance(faq_list, list) else []
+                    # Extraire le JSON du texte
+                    start_idx = cleaned_text.find('[')
+                    end_idx = cleaned_text.rfind(']')
+
+                    if start_idx != -1 and end_idx != -1:
+                        json_text = cleaned_text[start_idx:end_idx+1]
+                        faq_list = json.loads(json_text)
+
+                        # Valider que c'est bien une liste de dictionnaires
+                        if isinstance(faq_list, list) and all(
+                            isinstance(item, dict) and 'question' in item and 'answer' in item
+                            for item in faq_list
+                        ):
+                            return faq_list
+
+                    # Si parsing échoue, créer une FAQ par défaut
+                    return [{
+                        "question": "Quelles sont les informations importantes dans ce document ?",
+                        "answer": generated_text[:500] + "..."
+                    }]
 
                 except json.JSONDecodeError as e:
                     self.logger.error(f"Erreur de parsing JSON: {e}")
                     self.logger.error(f"Texte généré: {generated_text}")
-                    return []
+
+                    # Retourner une FAQ par défaut si parsing échoue
+                    return [{
+                        "question": "Contenu du document",
+                        "answer": generated_text[:500] + "..." if generated_text else "Contenu non disponible"
+                    }]
             else:
-                self.logger.error(f"Erreur Ollama: {response.status_code}")
+                self.logger.error(f"Erreur Ollama: {response.status_code} - {response.text}")
                 return []
 
         except Exception as e:
