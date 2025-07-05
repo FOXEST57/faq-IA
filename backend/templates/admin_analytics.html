@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics et Prédictions - Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1><i class="fas fa-chart-line"></i> Analytics et Prédictions des Visites</h1>
+            <p class="text-muted">Analyse des données de visite et prédictions Machine Learning</p>
+        </div>
+    </div>
+
+    <!-- Statistiques générales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Total Visites</h5>
+                            <h3>{{ stats.get('total_visits', 0) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-eye fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Visiteurs Uniques</h5>
+                            <h3>{{ stats.get('unique_visitors', 0) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-users fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Aujourd'hui</h5>
+                            <h3>{{ stats.get('visits_today', 0) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-day fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h5 class="card-title">Cette Semaine</h5>
+                            <h3>{{ stats.get('visits_this_week', 0) }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-calendar-week fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphiques -->
+    <div class="row mb-4">
+        <!-- Graphique des visites quotidiennes -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line"></i> Évolution des Visites</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="dailyVisitsChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Graphique des heures de pointe -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-clock"></i> Heures de Pointe</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="hourlyChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Prédictions ML -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5><i class="fas fa-brain"></i> Prédictions Machine Learning</h5>
+                    <button id="retrainBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-sync-alt"></i> Ré-entraîner
+                    </button>
+                </div>
+                <div class="card-body">
+                    {% if training_result.get('success') %}
+                        <div class="alert alert-success">
+                            <strong>Modèle entraîné !</strong>
+                            R² = {{ "%.3f"|format(training_result.get('metrics', {}).get('r2', 0)) }}
+                            ({{ training_result.get('metrics', {}).get('training_samples', 0) }} échantillons)
+                        </div>
+
+                        {% if predictions %}
+                            <canvas id="predictionsChart" height="100"></canvas>
+
+                            <div class="table-responsive mt-3">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Visites Prédites</th>
+                                            <th>Confiance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for pred in predictions %}
+                                        <tr>
+                                            <td>{{ pred.date }}</td>
+                                            <td><span class="badge badge-primary">{{ pred.predicted_visits }}</span></td>
+                                            <td>
+                                                {% if pred.confidence == 'high' %}
+                                                    <span class="badge badge-success">Élevée</span>
+                                                {% elif pred.confidence == 'medium' %}
+                                                    <span class="badge badge-warning">Moyenne</span>
+                                                {% else %}
+                                                    <span class="badge badge-secondary">Faible</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <strong>Modèle non disponible :</strong> {{ training_result.get('message', 'Erreur inconnue') }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights automatiques -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-lightbulb"></i> Insights Automatiques</h5>
+                </div>
+                <div class="card-body">
+                    {% if insights %}
+                        {% for insight in insights %}
+                            <div class="alert alert-info alert-sm py-2 mb-2">
+                                {{ insight }}
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-muted">Pas assez de données pour générer des insights.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pages populaires -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-fire"></i> Pages les Plus Visitées</h5>
+                </div>
+                <div class="card-body">
+                    {% if stats.get('popular_pages') %}
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Page</th>
+                                        <th>Visites</th>
+                                        <th>Pourcentage</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for page in stats.get('popular_pages', []) %}
+                                    <tr>
+                                        <td><code>{{ page.url }}</code></td>
+                                        <td><span class="badge badge-primary">{{ page.visits }}</span></td>
+                                        <td>
+                                            {% set percentage = (page.visits / stats.get('total_visits', 1) * 100) %}
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar" role="progressbar"
+                                                     style="width: {{ percentage }}%">
+                                                    {{ "%.1f"|format(percentage) }}%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Aucune donnée de page disponible.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js pour les graphiques -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// Données des graphiques passées depuis Python
+const dailyData = {{ stats.get('daily_data', []) | tojson }};
+const hourlyData = {{ stats.get('hourly_data', []) | tojson }};
+const predictions = {{ predictions | tojson }};
+
+// Graphique des visites quotidiennes
+if (dailyData.length > 0) {
+    const ctx1 = document.getElementById('dailyVisitsChart').getContext('2d');
+    new Chart(ctx1, {
+        type: 'line',
+        data: {
+            labels: dailyData.map(d => d.date),
+            datasets: [{
+                label: 'Visites',
+                data: dailyData.map(d => d.visits),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Évolution quotidienne des visites'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Graphique des heures de pointe
+if (hourlyData.length > 0) {
+    const ctx2 = document.getElementById('hourlyChart').getContext('2d');
+    new Chart(ctx2, {
+        type: 'bar',
+        data: {
+            labels: hourlyData.map(d => d.hour + 'h'),
+            datasets: [{
+                label: 'Visites',
+                data: hourlyData.map(d => d.visits),
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Répartition par heure'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Graphique des prédictions
+if (predictions.length > 0) {
+    const ctx3 = document.getElementById('predictionsChart').getContext('2d');
+    new Chart(ctx3, {
+        type: 'line',
+        data: {
+            labels: predictions.map(p => p.date),
+            datasets: [{
+                label: 'Prédictions',
+                data: predictions.map(p => p.predicted_visits),
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderDash: [5, 5],
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Prédictions des visites pour les 7 prochains jours'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+// Bouton de ré-entraînement
+document.getElementById('retrainBtn').addEventListener('click', function() {
+    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entraînement...';
+    this.disabled = true;
+
+    fetch('/api/analytics/retrain', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + data.message);
+            }
+        })
+        .catch(error => {
+            alert('Erreur: ' + error);
+        })
+        .finally(() => {
+            this.innerHTML = '<i class="fas fa-sync-alt"></i> Ré-entraîner';
+            this.disabled = false;
+        });
+});
+</script>
+{% endblock %}

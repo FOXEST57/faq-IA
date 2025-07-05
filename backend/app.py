@@ -2,6 +2,7 @@ from flask import Flask, render_template, session, redirect, url_for, request, f
 from flask_sqlalchemy import SQLAlchemy
 from view.faq import faq_bp
 from view.pdf import pdf_bp
+from view.analytics import analytics_bp  # Ajout du module analytics
 from models import db, User, FAQ, PDFDocument, VisitLog, AdminActionLog
 from config import config
 from utils.visit_logger import setup_visit_logging
@@ -180,6 +181,7 @@ def create_app(config_name=None):
 
     app.register_blueprint(faq_bp)
     app.register_blueprint(pdf_bp)
+    app.register_blueprint(analytics_bp)  # Enregistrement du blueprint analytics
 
     app.secret_key = app.config.get('SECRET_KEY', 'dev')
 
