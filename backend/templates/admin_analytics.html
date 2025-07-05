@@ -164,16 +164,16 @@
                                         {% for pred in predictions %}
                                         <tr>
                                             <td>{{ pred.date }}</td>
-                                            <td><span class="badge badge-primary">{{ pred.predicted_visits }}</span></td>
+                                            <td><span class="badge bg-primary text-white">{{ pred.predicted_visits }}</span></td>
                                             <td>
                                                 {% if pred.confidence == 'high' %}
-                                                    <span class="badge badge-success">Élevée</span>
+                                                    <span class="badge bg-success text-white">Élevée</span>
                                                 {% elif pred.confidence == 'medium' %}
-                                                    <span class="badge badge-warning">Moyenne</span>
+                                                    <span class="badge bg-warning text-dark">Moyenne</span>
                                                 {% elif pred.confidence == 'low' %}
-                                                    <span class="badge badge-secondary">Faible</span>
+                                                    <span class="badge bg-secondary text-white">Faible</span>
                                                 {% else %}
-                                                    <span class="badge badge-dark">{{ pred.confidence }}</span>
+                                                    <span class="badge bg-dark text-white">{{ pred.confidence }}</span>
                                                 {% endif %}
                                             </td>
                                         </tr>
