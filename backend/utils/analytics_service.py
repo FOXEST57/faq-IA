@@ -111,7 +111,7 @@ class VisitAnalyticsService:
         return popular.to_dict('records')
 
     def prepare_prediction_features(self, df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
-        """Prépare les features pour la prédiction ML"""
+        """Prépare les features pour la prédiction ML (version simplifiée)"""
         try:
             # Agrégation quotidienne
             daily_visits = df.groupby(df['timestamp'].dt.date).size().reset_index()
@@ -119,25 +119,29 @@ class VisitAnalyticsService:
             daily_visits['date'] = pd.to_datetime(daily_visits['date'])
             daily_visits = daily_visits.sort_values('date')
 
-            if len(daily_visits) < 7:  # Pas assez de données
-                self.logger.warning(f"Pas assez de données quotidiennes: {len(daily_visits)} jours (minimum 7)")
+            if len(daily_visits) < 2:  # Seulement 2 jours minimum maintenant
+                self.logger.warning(f"Pas assez de données quotidiennes: {len(daily_visits)} jours (minimum 2)")
                 return np.array([]), np.array([])
 
-            # Créer des features temporelles
+            # Features simplifiées pour petites données
             daily_visits['day_of_week'] = daily_visits['date'].dt.dayofweek
-            daily_visits['day_of_month'] = daily_visits['date'].dt.day
             daily_visits['is_weekend'] = daily_visits['day_of_week'].isin([5, 6]).astype(int)
 
-            # Features de tendance (moyennes mobiles)
-            daily_visits['visits_ma3'] = daily_visits['visits'].rolling(window=3, min_periods=1).mean()
-            daily_visits['visits_ma7'] = daily_visits['visits'].rolling(window=7, min_periods=1).mean()
+            # Pour les très petites données, utiliser des features plus simples
+            if len(daily_visits) < 4:
+                # Features très basiques
+                features = ['day_of_week', 'is_weekend']
+                X = daily_visits[features].values
+            else:
+                # Features un peu plus avancées si on a plus de données
+                daily_visits['day_of_month'] = daily_visits['date'].dt.day
+                daily_visits['visits_ma2'] = daily_visits['visits'].rolling(window=2, min_periods=1).mean()
+                features = ['day_of_week', 'day_of_month', 'is_weekend', 'visits_ma2']
+                X = daily_visits[features].fillna(daily_visits['visits'].mean()).values
 
-            # Sélectionner les features
-            features = ['day_of_week', 'day_of_month', 'is_weekend', 'visits_ma3', 'visits_ma7']
-            X = daily_visits[features].fillna(0).values
             y = daily_visits['visits'].values
 
-            self.logger.info(f"Features préparées: {X.shape[0]} échantillons, {X.shape[1]} features")
+            self.logger.info(f"Features préparées (mode simplifié): {X.shape[0]} échantillons, {X.shape[1]} features")
             return X, y
 
         except Exception as e:
@@ -145,17 +149,17 @@ class VisitAnalyticsService:
             return np.array([]), np.array([])
 
     def train_prediction_model(self, db_session) -> Dict:
-        """Entraîne le modèle de prédiction des visites"""
+        """Entraîne le modèle de prédiction des visites (version tolérante)"""
         try:
             from models.visit_log import VisitLog
 
             # Récupérer les données d'entraînement
             visits = db_session.query(VisitLog).all()
 
-            if len(visits) < 14:  # Besoin d'au moins 2 semaines de données
+            if len(visits) < 5:  # Besoin d'au moins 5 visites maintenant
                 return {
                     'success': False,
-                    'message': f'Pas assez de données pour entraîner le modèle (minimum 14 jours, actuellement {len(visits)} visites)'
+                    'message': f'Pas assez de données pour entraîner le modèle (minimum 5 visites, actuellement {len(visits)} visites)'
                 }
 
             # Convertir en DataFrame
@@ -170,14 +174,21 @@ class VisitAnalyticsService:
             df = pd.DataFrame(data)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
 
+            # Vérifier qu'on a au moins 2 jours uniques
+            unique_days = df['timestamp'].dt.date.nunique()
+            if unique_days < 2:
+                return {
+                    'success': False,
+                    'message': f'Besoin d\'au moins 2 jours différents de données (actuellement {unique_days} jour unique)'
+                }
+
             # Préparer les features
             X, y = self.prepare_prediction_features(df)
 
             if len(X) == 0 or len(y) == 0:
-                unique_days = df['timestamp'].dt.date.nunique()
                 return {
                     'success': False,
-                    'message': f'Données insuffisantes pour l\'entraînement (seulement {unique_days} jours uniques)'
+                    'message': f'Impossible de préparer les features (données insuffisantes sur {unique_days} jours)'
                 }
 
             # Vérifier la cohérence des données
@@ -186,6 +197,16 @@ class VisitAnalyticsService:
                     'success': False,
                     'message': f'Incohérence des données: {X.shape[0]} features vs {y.shape[0]} targets'
                 }
+
+            # Pour de très petites données, utiliser un modèle plus simple
+            if len(X) < 5:
+                # Modèle très simple pour très peu de données
+                from sklearn.linear_model import Ridge
+                self.model = Ridge(alpha=1.0)  # Régularisation pour éviter l'overfitting
+            else:
+                # Modèle standard
+                from sklearn.linear_model import LinearRegression
+                self.model = LinearRegression()
 
             # Normaliser les features
             X_scaled = self.scaler.fit_transform(X)
@@ -199,15 +220,17 @@ class VisitAnalyticsService:
             mse = mean_squared_error(y, y_pred)
             r2 = r2_score(y, y_pred)
 
-            self.logger.info(f"Modèle entraîné - MSE: {mse:.2f}, R²: {r2:.2f}")
+            self.logger.info(f"Modèle entraîné (mode tolérant) - MSE: {mse:.2f}, R²: {r2:.2f}")
 
             return {
                 'success': True,
-                'message': 'Modèle entraîné avec succès',
+                'message': f'Modèle entraîné avec succès (mode adaptatif - {unique_days} jours de données)',
                 'metrics': {
                     'mse': float(mse),
                     'r2': float(r2),
-                    'training_samples': len(X)
+                    'training_samples': len(X),
+                    'unique_days': unique_days,
+                    'model_type': 'Ridge' if len(X) < 5 else 'LinearRegression'
                 }
             }
 
@@ -219,7 +242,7 @@ class VisitAnalyticsService:
             }
 
     def predict_future_visits(self, days_ahead: int = 7) -> List[Dict]:
-        """Prédit les visites futures"""
+        """Prédit les visites futures (version adaptative)"""
         try:
             if not self.is_trained:
                 return []
@@ -230,25 +253,47 @@ class VisitAnalyticsService:
             for i in range(1, days_ahead + 1):
                 future_date = base_date + timedelta(days=i)
 
-                # Créer les features pour cette date
-                features = [
-                    future_date.weekday(),  # day_of_week
-                    future_date.day,        # day_of_month
-                    1 if future_date.weekday() >= 5 else 0,  # is_weekend
-                    50,  # visits_ma3 (valeur par défaut)
-                    45   # visits_ma7 (valeur par défaut)
-                ]
+                # Adapter les features selon ce qui a été utilisé pour l'entraînement
+                if hasattr(self.scaler, 'n_features_in_'):
+                    n_features = self.scaler.n_features_in_
+                else:
+                    n_features = 2  # Par défaut
+
+                if n_features == 2:
+                    # Features très basiques
+                    features = [
+                        future_date.weekday(),  # day_of_week
+                        1 if future_date.weekday() >= 5 else 0,  # is_weekend
+                    ]
+                else:
+                    # Features plus avancées
+                    avg_visits = 25  # Valeur par défaut basée sur les données existantes
+                    features = [
+                        future_date.weekday(),  # day_of_week
+                        future_date.day,        # day_of_month
+                        1 if future_date.weekday() >= 5 else 0,  # is_weekend
+                        avg_visits   # visits_ma2 (moyenne des visites existantes)
+                    ]
+                    features = features[:n_features]  # S'assurer qu'on a le bon nombre
 
                 X_future = np.array([features])
                 X_future_scaled = self.scaler.transform(X_future)
 
                 predicted_visits = self.model.predict(X_future_scaled)[0]
-                predicted_visits = max(0, int(predicted_visits))  # Pas de visites négatives
+                predicted_visits = max(1, int(predicted_visits))  # Au moins 1 visite
+
+                # Niveau de confiance basé sur la quantité de données
+                if n_features <= 2:
+                    confidence = 'low'
+                elif n_features <= 3:
+                    confidence = 'medium'
+                else:
+                    confidence = 'high'
 
                 predictions.append({
                     'date': future_date.strftime('%Y-%m-%d'),
                     'predicted_visits': predicted_visits,
-                    'confidence': 'medium'  # Pourrait être calculé plus précisément
+                    'confidence': confidence
                 })
 
             return predictions

@@ -113,6 +113,27 @@
                     </button>
                 </div>
                 <div class="card-body">
+                    <!-- Informations de debug -->
+                    {% if stats.get('debug_info') %}
+                    <div class="alert alert-info">
+                        <strong>🔍 Informations de debug :</strong><br>
+                        {% if stats.debug_info is string %}
+                            {{ stats.debug_info }}
+                        {% else %}
+                            <ul class="mb-0">
+                                <li>Total visites : {{ stats.debug_info.total_visits }}</li>
+                                <li>Jours uniques : {{ stats.debug_info.unique_days }}</li>
+                                <li>Période : {{ stats.debug_info.date_range }}</li>
+                                <li>Répartition par jour :
+                                    {% for date, count in stats.debug_info.visits_per_day.items() %}
+                                        {{ date }} ({{ count }} visites){% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                </li>
+                            </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
                     {% if training_result.get('success') %}
                         <div class="alert alert-success">
                             <strong>Modèle entraîné !</strong>
