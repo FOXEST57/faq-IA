@@ -174,58 +174,88 @@ def admin_ia_generation():
 @admin_required
 def generate_faq_from_pdf():
     """Génère des FAQ à partir d'un PDF sélectionné"""
-    pdf_id = request.form.get('pdf_id')
-    if not pdf_id:
-        flash('Veuillez sélectionner un PDF.', 'danger')
-        return redirect(url_for('pdf.admin_ia_generation'))
-
-    pdf_doc = PDFDocument.query.get_or_404(pdf_id)
-    pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
-
-    if not os.path.exists(pdf_path):
-        flash('Fichier PDF introuvable.', 'danger')
-        return redirect(url_for('pdf.admin_ia_generation'))
-
     try:
+        current_app.logger.info("=== DÉBUT GÉNÉRATION FAQ ===")
+
+        pdf_id = request.form.get('pdf_id')
+        if not pdf_id:
+            current_app.logger.error("Aucun PDF sélectionné")
+            flash('Veuillez sélectionner un PDF.', 'danger')
+            return redirect(url_for('pdf.admin_ia_generation'))
+
+        current_app.logger.info(f"PDF ID sélectionné: {pdf_id}")
+
+        pdf_doc = PDFDocument.query.get_or_404(pdf_id)
+        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
+
+        current_app.logger.info(f"PDF trouvé: {pdf_doc.filename}, chemin: {pdf_path}")
+
+        if not os.path.exists(pdf_path):
+            current_app.logger.error(f"Fichier PDF introuvable: {pdf_path}")
+            flash('Fichier PDF introuvable.', 'danger')
+            return redirect(url_for('pdf.admin_ia_generation'))
+
+        # Vérifier la taille du fichier et la mémoire disponible
+        file_size = os.path.getsize(pdf_path)
+        current_app.logger.info(f"Taille du fichier PDF: {file_size} bytes")
+
         # Initialiser le service RAG
+        current_app.logger.info("Initialisation du service RAG...")
         rag_service = OllamaRAGService()
 
         # Vérifier la connexion Ollama
+        current_app.logger.info("Vérification de la connexion Ollama...")
         if not rag_service.check_ollama_connection():
+            current_app.logger.error("Ollama non disponible")
             flash('Ollama n\'est pas disponible. Vérifiez le service.', 'danger')
             return redirect(url_for('pdf.admin_ia_generation'))
 
-        # Log pour déboguer
-        current_app.logger.info(f"Début de génération FAQ pour PDF: {pdf_doc.filename}")
+        current_app.logger.info(f"Modèle Ollama utilisé: {rag_service.model}")
 
-        # Générer les FAQ
-        generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
-
-        current_app.logger.info(f"FAQ générées: {len(generated_faqs) if generated_faqs else 0}")
+        # Générer les FAQ avec gestion d'erreur robuste
+        current_app.logger.info("Début de la génération FAQ...")
+        try:
+            generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
+            current_app.logger.info(f"Génération terminée. FAQ générées: {len(generated_faqs) if generated_faqs else 0}")
+        except Exception as rag_error:
+            current_app.logger.error(f"Erreur lors de la génération RAG: {str(rag_error)}")
+            flash(f'Erreur lors de la génération IA: {str(rag_error)}', 'danger')
+            return redirect(url_for('pdf.admin_ia_generation'))
 
         if not generated_faqs:
+            current_app.logger.warning("Aucune FAQ générée")
             flash('Aucune FAQ générée. Le document pourrait être trop court ou illisible.', 'warning')
             return redirect(url_for('pdf.admin_ia_generation'))
 
         # Sauvegarder les FAQ générées
+        current_app.logger.info("Sauvegarde des FAQ en base de données...")
         saved_count = 0
-        for faq_data in generated_faqs:
-            if faq_data.get('question') and faq_data.get('answer'):
-                faq = FAQ(
-                    question=faq_data['question'],
-                    answer=faq_data['answer'],
-                    source='ia'
-                )
-                db.session.add(faq)
-                saved_count += 1
+        try:
+            for i, faq_data in enumerate(generated_faqs):
+                current_app.logger.info(f"Traitement FAQ {i+1}/{len(generated_faqs)}")
+                if faq_data.get('question') and faq_data.get('answer'):
+                    faq = FAQ(
+                        question=faq_data['question'],
+                        answer=faq_data['answer'],
+                        source='ia'
+                    )
+                    db.session.add(faq)
+                    saved_count += 1
 
-        db.session.commit()
+            db.session.commit()
+            current_app.logger.info(f"Sauvegarde terminée. {saved_count} FAQ sauvegardées")
 
-        flash(f'{saved_count} FAQ générées avec succès à partir du document {pdf_doc.filename}.', 'success')
+            flash(f'{saved_count} FAQ générées avec succès à partir du document {pdf_doc.filename}.', 'success')
+
+        except Exception as db_error:
+            db.session.rollback()
+            current_app.logger.error(f'Erreur lors de la sauvegarde: {str(db_error)}')
+            flash(f'Erreur lors de la sauvegarde: {str(db_error)}', 'danger')
+
+        current_app.logger.info("=== FIN GÉNÉRATION FAQ ===")
 
     except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f'Erreur lors de la génération: {str(e)}')
+        current_app.logger.error(f'Erreur générale lors de la génération: {str(e)}', exc_info=True)
         flash(f'Erreur lors de la génération: {str(e)}', 'danger')
 
     return redirect(url_for('pdf.admin_ia_generation'))
