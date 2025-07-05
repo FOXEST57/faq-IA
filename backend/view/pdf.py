@@ -202,34 +202,75 @@ def api_generate_faq():
 def api_process_faq():
     """API pour traiter la génération FAQ"""
     try:
+        current_app.logger.info("=== DÉBUT API PROCESS FAQ ===")
+
         pdf_id = request.json.get('pdf_id')
+        if not pdf_id:
+            return jsonify({'success': False, 'message': 'PDF ID manquant'}), 400
+
+        current_app.logger.info(f"PDF ID reçu: {pdf_id}")
+
         pdf_doc = PDFDocument.query.get_or_404(pdf_id)
         pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
 
-        # Traitement de la génération
-        rag_service = OllamaRAGService()
+        current_app.logger.info(f"Fichier PDF: {pdf_path}")
 
+        if not os.path.exists(pdf_path):
+            return jsonify({'success': False, 'message': 'Fichier PDF introuvable'}), 404
+
+        # Initialiser le service RAG avec gestion d'erreur
+        current_app.logger.info("Initialisation du service RAG...")
+        try:
+            rag_service = OllamaRAGService()
+        except Exception as e:
+            current_app.logger.error(f"Erreur initialisation RAG: {e}")
+            return jsonify({'success': False, 'message': f'Erreur initialisation IA: {str(e)}'}), 500
+
+        # Vérifier la connexion Ollama
+        current_app.logger.info("Vérification connexion Ollama...")
         if not rag_service.check_ollama_connection():
-            return jsonify({'success': False, 'message': 'Ollama non disponible'}), 500
+            current_app.logger.error("Ollama non disponible")
+            return jsonify({'success': False, 'message': 'Service IA non disponible'}), 500
 
-        generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
+        current_app.logger.info(f"Modèle utilisé: {rag_service.model}")
+
+        # Génération des FAQ avec timeout et gestion d'erreur
+        current_app.logger.info("Début génération FAQ...")
+        try:
+            generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
+            current_app.logger.info(f"FAQ générées: {len(generated_faqs) if generated_faqs else 0}")
+        except Exception as e:
+            current_app.logger.error(f"Erreur génération FAQ: {e}")
+            return jsonify({'success': False, 'message': f'Erreur lors de la génération: {str(e)}'}), 500
 
         if not generated_faqs:
-            return jsonify({'success': False, 'message': 'Aucune FAQ générée'}), 400
+            current_app.logger.warning("Aucune FAQ générée")
+            return jsonify({'success': False, 'message': 'Aucune FAQ générée à partir du document'}), 400
 
         # Sauvegarder les FAQ
+        current_app.logger.info("Sauvegarde des FAQ...")
         saved_count = 0
-        for faq_data in generated_faqs:
-            if faq_data.get('question') and faq_data.get('answer'):
-                faq = FAQ(
-                    question=faq_data['question'],
-                    answer=faq_data['answer'],
-                    source='ia'
-                )
-                db.session.add(faq)
-                saved_count += 1
+        try:
+            for faq_data in generated_faqs:
+                if faq_data.get('question') and faq_data.get('answer'):
+                    faq = FAQ(
+                        question=faq_data['question'],
+                        answer=faq_data['answer'],
+                        source='ia'
+                    )
+                    db.session.add(faq)
+                    saved_count += 1
+                    current_app.logger.info(f"FAQ ajoutée: {faq_data['question'][:50]}...")
 
-        db.session.commit()
+            db.session.commit()
+            current_app.logger.info(f"Sauvegarde terminée: {saved_count} FAQ")
+
+        except Exception as e:
+            current_app.logger.error(f"Erreur sauvegarde: {e}")
+            db.session.rollback()
+            return jsonify({'success': False, 'message': f'Erreur sauvegarde: {str(e)}'}), 500
+
+        current_app.logger.info("=== FIN API PROCESS FAQ ===")
 
         return jsonify({
             'success': True,
@@ -238,5 +279,5 @@ def api_process_faq():
         })
 
     except Exception as e:
-        current_app.logger.error(f'Erreur API génération: {e}')
-        return jsonify({'success': False, 'message': str(e)}), 500
+        current_app.logger.error(f'Erreur API génération: {e}', exc_info=True)
+        return jsonify({'success': False, 'message': f'Erreur technique: {str(e)}'}), 500
