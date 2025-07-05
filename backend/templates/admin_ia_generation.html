@@ -172,6 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             try {
                 // Étape 1: Lancer la génération
+                console.log('Étape 1: Lancement de la génération pour PDF ID:', pdfId);
                 const response = await fetch('/api/ia/generate-faq', {
                     method: 'POST',
                     headers: {
@@ -182,12 +183,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                 });
 
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                // Vérifier le type de contenu
+                const contentType = response.headers.get('content-type');
+                console.log('Content-Type:', contentType);
+
+                if (!contentType || !contentType.includes('application/json')) {
+                    const textResponse = await response.text();
+                    console.error('Réponse non-JSON reçue:', textResponse);
+                    throw new Error(`Réponse non-JSON reçue du serveur (${response.status}). Contenu: ${textResponse.substring(0, 200)}...`);
+                }
+
                 const data = await response.json();
+                console.log('Data reçue:', data);
 
                 if (data.success) {
                     generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
 
                     // Étape 2: Traiter la génération
+                    console.log('Étape 2: Traitement de la génération...');
                     const processResponse = await fetch('/api/ia/process-faq', {
                         method: 'POST',
                         headers: {
@@ -198,7 +214,19 @@ document.addEventListener('DOMContentLoaded', function() {
                         })
                     });
 
+                    console.log('Process response status:', processResponse.status);
+
+                    const processContentType = processResponse.headers.get('content-type');
+                    console.log('Process Content-Type:', processContentType);
+
+                    if (!processContentType || !processContentType.includes('application/json')) {
+                        const textResponse = await processResponse.text();
+                        console.error('Réponse non-JSON reçue lors du traitement:', textResponse);
+                        throw new Error(`Réponse non-JSON reçue lors du traitement (${processResponse.status}). Contenu: ${textResponse.substring(0, 200)}...`);
+                    }
+
                     const processData = await processResponse.json();
+                    console.log('Process data reçue:', processData);
 
                     progressArea.style.display = 'none';
                     resultArea.style.display = 'block';
@@ -233,12 +261,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 }
             } catch (error) {
+                console.error('Erreur complète:', error);
                 progressArea.style.display = 'none';
                 resultArea.style.display = 'block';
                 resultArea.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle"></i>
                         <strong>Erreur technique:</strong> ${error.message}
+                        <br><small>Vérifiez la console du navigateur pour plus de détails.</small>
                     </div>
                 `;
             } finally {
