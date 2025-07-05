@@ -259,3 +259,75 @@ def generate_faq_from_pdf():
         flash(f'Erreur lors de la génération: {str(e)}', 'danger')
 
     return redirect(url_for('pdf.admin_ia_generation'))
+
+# Route API pour lancer la génération en arrière-plan
+@pdf_bp.route('/api/ia/generate-faq', methods=['POST'])
+@admin_required
+def api_generate_faq():
+    """API pour lancer la génération de FAQ en arrière-plan"""
+    try:
+        pdf_id = request.json.get('pdf_id')
+        if not pdf_id:
+            return jsonify({'success': False, 'message': 'PDF ID manquant'}), 400
+
+        pdf_doc = PDFDocument.query.get_or_404(pdf_id)
+        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
+
+        if not os.path.exists(pdf_path):
+            return jsonify({'success': False, 'message': 'Fichier PDF introuvable'}), 404
+
+        # Réponse immédiate
+        return jsonify({
+            'success': True,
+            'message': 'Génération lancée',
+            'pdf_name': pdf_doc.filename
+        }), 202
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Route API pour vérifier le statut et lancer la génération réelle
+@pdf_bp.route('/api/ia/process-faq', methods=['POST'])
+@admin_required
+def api_process_faq():
+    """API pour traiter la génération FAQ"""
+    try:
+        pdf_id = request.json.get('pdf_id')
+        pdf_doc = PDFDocument.query.get_or_404(pdf_id)
+        pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
+
+        # Traitement de la génération
+        rag_service = OllamaRAGService()
+
+        if not rag_service.check_ollama_connection():
+            return jsonify({'success': False, 'message': 'Ollama non disponible'}), 500
+
+        generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
+
+        if not generated_faqs:
+            return jsonify({'success': False, 'message': 'Aucune FAQ générée'}), 400
+
+        # Sauvegarder les FAQ
+        saved_count = 0
+        for faq_data in generated_faqs:
+            if faq_data.get('question') and faq_data.get('answer'):
+                faq = FAQ(
+                    question=faq_data['question'],
+                    answer=faq_data['answer'],
+                    source='ia'
+                )
+                db.session.add(faq)
+                saved_count += 1
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': f'{saved_count} FAQ générées avec succès',
+            'count': saved_count
+        })
+
+    except Exception as e:
+        current_app.logger.error(f'Erreur API génération: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
