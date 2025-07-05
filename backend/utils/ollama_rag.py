@@ -171,14 +171,26 @@ Only return valid JSON, no other text."""
         if not text:
             return []
 
-        # Diviser en chunks
-        chunks = self.chunk_text(text, chunk_size=1500)
+        # Diviser en chunks plus petits pour économiser la mémoire
+        chunks = self.chunk_text(text, chunk_size=1000)  # Réduire la taille des chunks
 
         all_faqs = []
-        for i, chunk in enumerate(chunks[:3]):  # Limiter à 3 chunks pour éviter trop de génération
-            self.logger.info(f"Traitement du chunk {i+1}/{min(3, len(chunks))}")
-            faqs = self.generate_faq_from_text(chunk)
-            all_faqs.extend(faqs)
+        # Limiter à 2 chunks pour éviter les timeouts et économiser la mémoire
+        max_chunks = min(2, len(chunks))
+
+        for i, chunk in enumerate(chunks[:max_chunks]):
+            self.logger.info(f"Traitement du chunk {i+1}/{max_chunks}")
+            try:
+                faqs = self.generate_faq_from_text(chunk)
+                all_faqs.extend(faqs)
+
+                # Libérer la mémoire après chaque chunk
+                import gc
+                gc.collect()
+
+            except Exception as e:
+                self.logger.error(f"Erreur sur le chunk {i+1}: {e}")
+                continue
 
         return all_faqs
 

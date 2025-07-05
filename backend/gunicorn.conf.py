@@ -8,7 +8,7 @@ worker_class = "sync"
 worker_connections = 1000
 max_requests = 1000
 max_requests_jitter = 50
-timeout = 30
+timeout = 300  # Augmenté à 5 minutes pour la génération IA
 keepalive = 2
 
 # Répertoire de travail
