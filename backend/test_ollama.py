@@ -8,6 +8,10 @@ sys.path.append(os.path.dirname(__file__))
 
 from utils.ollama_rag import OllamaRAGService
 import requests
+import logging
+
+# Configurer le logging pour voir les messages
+logging.basicConfig(level=logging.INFO, format='%(levelname)s - %(message)s')
 
 def test_ollama_connection():
     """Test de connexion à Ollama"""
@@ -19,7 +23,8 @@ def test_ollama_connection():
         print(f"Réponse API Ollama: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
-            print(f"Modèles disponibles: {[m['name'] for m in data.get('models', [])]}")
+            models = [m['name'] for m in data.get('models', [])]
+            print(f"Modèles disponibles: {models}")
         else:
             print(f"Erreur API: {response.text}")
     except Exception as e:
@@ -27,7 +32,10 @@ def test_ollama_connection():
 
     # Test via le service RAG
     try:
+        print("\n--- Test du service RAG ---")
         rag_service = OllamaRAGService()
+        print(f"Modèle sélectionné après initialisation: {rag_service.model}")
+
         status = rag_service.check_ollama_connection()
         print(f"Status via RAGService: {status}")
 
@@ -44,6 +52,7 @@ def test_text_generation():
 
     try:
         rag_service = OllamaRAGService()
+        print(f"Modèle utilisé pour la génération: {rag_service.model}")
 
         # Test avec un texte simple
         test_text = """
@@ -51,6 +60,7 @@ def test_text_generation():
         Il favorise la programmation impérative structurée, fonctionnelle et orientée objet.
         """
 
+        print("Début de la génération...")
         faqs = rag_service.generate_faq_from_text(test_text)
         print(f"Nombre de FAQ générées: {len(faqs) if faqs else 0}")
 
@@ -65,6 +75,32 @@ def test_text_generation():
     except Exception as e:
         print(f"Erreur génération: {e}")
 
+def test_direct_model_call():
+    """Test direct d'appel au modèle"""
+    print("\n=== Test direct d'appel au modèle ===")
+
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "phi3:mini",
+                "prompt": "Bonjour, comment allez-vous ?",
+                "stream": False
+            },
+            timeout=30
+        )
+
+        print(f"Statut de la réponse: {response.status_code}")
+        if response.status_code == 200:
+            result = response.json()
+            print(f"Réponse du modèle: {result.get('response', 'N/A')[:200]}...")
+        else:
+            print(f"Erreur: {response.text}")
+
+    except Exception as e:
+        print(f"Erreur test direct: {e}")
+
 if __name__ == "__main__":
     test_ollama_connection()
     test_text_generation()
+    test_direct_model_call()
