@@ -254,8 +254,10 @@ def generate_faq_from_pdf():
 
         current_app.logger.info("=== FIN GÉNÉRATION FAQ ===")
 
+        # Optimisation : réponse rapide pour éviter le timeout
+        return redirect(url_for('pdf.admin_ia_generation'))
+
     except Exception as e:
         current_app.logger.error(f'Erreur générale lors de la génération: {str(e)}', exc_info=True)
         flash(f'Erreur lors de la génération: {str(e)}', 'danger')
-
-    return redirect(url_for('pdf.admin_ia_generation'))
+        return redirect(url_for('pdf.admin_ia_generation'))
