@@ -49,9 +49,8 @@ class VisitAnalyticsService:
                 data.append({
                     'timestamp': visit.timestamp,
                     'ip_address': visit.ip_address,
-                    'url': visit.url,
-                    'user_agent': visit.user_agent,
-                    'referrer': visit.referrer
+                    'url': visit.url
+                    # Suppression de user_agent et referrer qui n'existent pas dans le modèle
                 })
 
             df = pd.DataFrame(data)
