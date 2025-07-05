@@ -63,7 +63,7 @@
                 </div>
                 <div class="card-body">
                     {% if pdfs %}
-                        <form method="POST" action="{{ url_for('pdf.generate_faq_from_pdf') }}" id="generateForm">
+                        <form id="generateForm">
                             <div class="form-group">
                                 <label for="pdf_id">Sélectionner un document PDF :</label>
                                 <select name="pdf_id" id="pdf_id" class="form-control" required>
@@ -98,6 +98,23 @@
                                 <i class="fas fa-magic"></i> Générer des FAQ
                             </button>
                         </form>
+
+                        <!-- Zone de progression -->
+                        <div id="progressArea" class="mt-4" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-clock"></i>
+                                <strong>Génération en cours...</strong>
+                                Veuillez patienter, ce processus peut prendre plusieurs minutes.
+                                <div class="progress mt-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                         role="progressbar" style="width: 100%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Zone de résultats -->
+                        <div id="resultArea" class="mt-4" style="display: none;">
+                        </div>
                     {% else %}
                         <div class="alert alert-warning">
                             <i class="fas fa-exclamation-triangle"></i>
@@ -134,25 +151,101 @@
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('generateForm');
     const generateBtn = document.getElementById('generateBtn');
+    const progressArea = document.getElementById('progressArea');
+    const resultArea = document.getElementById('resultArea');
 
     if (form) {
-        form.addEventListener('submit', function(e) {
-            generateBtn.disabled = true;
-            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-            // Afficher un message d'attente
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-info mt-3';
-            alertDiv.innerHTML = `
-                <i class="fas fa-clock"></i>
-                <strong>Génération en cours...</strong>
-                Veuillez patienter, ce processus peut prendre plusieurs minutes.
-                <div class="progress mt-2">
-                    <div class="progress-bar progress-bar-striped progress-bar-animated"
-                         role="progressbar" style="width: 100%"></div>
-                </div>
-            `;
-            form.appendChild(alertDiv);
+            const pdfId = document.getElementById('pdf_id').value;
+            if (!pdfId) {
+                alert('Veuillez sélectionner un PDF');
+                return;
+            }
+
+            // Désactiver le bouton et afficher la progression
+            generateBtn.disabled = true;
+            generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Lancement...';
+            progressArea.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            try {
+                // Étape 1: Lancer la génération
+                const response = await fetch('/api/ia/generate-faq', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        pdf_id: pdfId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération en cours...';
+
+                    // Étape 2: Traiter la génération
+                    const processResponse = await fetch('/api/ia/process-faq', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            pdf_id: pdfId
+                        })
+                    });
+
+                    const processData = await processResponse.json();
+
+                    progressArea.style.display = 'none';
+                    resultArea.style.display = 'block';
+
+                    if (processData.success) {
+                        resultArea.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i>
+                                <strong>Succès!</strong> ${processData.message}
+                                <br>
+                                <a href="{{ url_for('faq.admin_faq_list') }}" class="btn btn-sm btn-success mt-2">
+                                    <i class="fas fa-eye"></i> Voir les FAQ générées
+                                </a>
+                            </div>
+                        `;
+                    } else {
+                        resultArea.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Erreur:</strong> ${processData.message}
+                            </div>
+                        `;
+                    }
+                } else {
+                    progressArea.style.display = 'none';
+                    resultArea.style.display = 'block';
+                    resultArea.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Erreur:</strong> ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                progressArea.style.display = 'none';
+                resultArea.style.display = 'block';
+                resultArea.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Erreur technique:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                // Réactiver le bouton
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fas fa-magic"></i> Générer des FAQ';
+            }
         });
     }
 });
