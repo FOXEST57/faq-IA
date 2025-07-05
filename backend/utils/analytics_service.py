@@ -39,7 +39,8 @@ class VisitAnalyticsService:
                     'visits_this_month': 0,
                     'daily_data': [],
                     'hourly_data': [],
-                    'popular_pages': []
+                    'popular_pages': [],
+                    'debug_info': 'Aucune visite enregistrée'
                 }
 
             # Convertir en DataFrame pour faciliter l'analyse
@@ -56,6 +57,10 @@ class VisitAnalyticsService:
             df = pd.DataFrame(data)
             df['timestamp'] = pd.to_datetime(df['timestamp'])
 
+            # Debug : analyser la répartition des dates
+            unique_dates = df['timestamp'].dt.date.unique()
+            date_counts = df.groupby(df['timestamp'].dt.date).size()
+
             # Calculer les statistiques
             now = datetime.now()
             today = now.date()
@@ -70,14 +75,20 @@ class VisitAnalyticsService:
                 'visits_this_month': len(df[df['timestamp'] >= month_ago]),
                 'daily_data': self._get_daily_data(df),
                 'hourly_data': self._get_hourly_data(df),
-                'popular_pages': self._get_popular_pages(df)
+                'popular_pages': self._get_popular_pages(df),
+                'debug_info': {
+                    'total_visits': len(visits),
+                    'unique_days': len(unique_dates),
+                    'date_range': f"Du {min(unique_dates)} au {max(unique_dates)}",
+                    'visits_per_day': date_counts.to_dict()
+                }
             }
 
             return stats
 
         except Exception as e:
             self.logger.error(f"Erreur lors du calcul des statistiques: {e}")
-            return {}
+            return {'debug_info': f'Erreur: {str(e)}'}
 
     def _get_daily_data(self, df: pd.DataFrame) -> List[Dict]:
         """Agrège les données par jour"""
