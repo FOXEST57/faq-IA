@@ -99,7 +99,7 @@ class VisitAnalyticsService:
         popular = popular.sort_values('visits', ascending=False).head(limit)
         return popular.to_dict('records')
 
-    def prepare_prediction_features(self, df: pd.DataFrame) -> np.ndarray:
+    def prepare_prediction_features(self, df: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:
         """Prépare les features pour la prédiction ML"""
         try:
             # Agrégation quotidienne
@@ -109,7 +109,8 @@ class VisitAnalyticsService:
             daily_visits = daily_visits.sort_values('date')
 
             if len(daily_visits) < 7:  # Pas assez de données
-                return np.array([])
+                self.logger.warning(f"Pas assez de données quotidiennes: {len(daily_visits)} jours (minimum 7)")
+                return np.array([]), np.array([])
 
             # Créer des features temporelles
             daily_visits['day_of_week'] = daily_visits['date'].dt.dayofweek
@@ -123,8 +124,10 @@ class VisitAnalyticsService:
             # Sélectionner les features
             features = ['day_of_week', 'day_of_month', 'is_weekend', 'visits_ma3', 'visits_ma7']
             X = daily_visits[features].fillna(0).values
+            y = daily_visits['visits'].values
 
-            return X, daily_visits['visits'].values
+            self.logger.info(f"Features préparées: {X.shape[0]} échantillons, {X.shape[1]} features")
+            return X, y
 
         except Exception as e:
             self.logger.error(f"Erreur lors de la préparation des features: {e}")
@@ -141,7 +144,7 @@ class VisitAnalyticsService:
             if len(visits) < 14:  # Besoin d'au moins 2 semaines de données
                 return {
                     'success': False,
-                    'message': 'Pas assez de données pour entraîner le modèle (minimum 14 jours)'
+                    'message': f'Pas assez de données pour entraîner le modèle (minimum 14 jours, actuellement {len(visits)} visites)'
                 }
 
             # Convertir en DataFrame
@@ -159,10 +162,18 @@ class VisitAnalyticsService:
             # Préparer les features
             X, y = self.prepare_prediction_features(df)
 
-            if len(X) == 0:
+            if len(X) == 0 or len(y) == 0:
+                unique_days = df['timestamp'].dt.date.nunique()
                 return {
                     'success': False,
-                    'message': 'Impossible de préparer les features'
+                    'message': f'Données insuffisantes pour l\'entraînement (seulement {unique_days} jours uniques)'
+                }
+
+            # Vérifier la cohérence des données
+            if X.shape[0] != y.shape[0]:
+                return {
+                    'success': False,
+                    'message': f'Incohérence des données: {X.shape[0]} features vs {y.shape[0]} targets'
                 }
 
             # Normaliser les features
