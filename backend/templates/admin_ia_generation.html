@@ -274,7 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </a>
                             </div>
                         `;
-                        return;
+                        return; // ARRÊTER la surveillance ici
 
                     } else if (task.status === 'failed') {
                         // Tâche échouée
@@ -286,8 +286,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <strong>Erreur:</strong> ${task.error}
                             </div>
                         `;
-                        return;
+                        return; // ARRÊTER la surveillance ici
                     }
+
+                    // Si la tâche est toujours en cours, continuer la surveillance
                 } else {
                     throw new Error(data.message);
                 }
@@ -298,6 +300,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             } catch (error) {
                 console.error('Erreur lors de la surveillance:', error);
+
+                // Si c'est une erreur 404 et qu'on a déjà affiché un succès, arrêter
+                if (error.message.includes('404') && resultArea.style.display === 'block') {
+                    console.log('Tâche déjà terminée, arrêt de la surveillance');
+                    return;
+                }
+
                 attempts++;
                 await new Promise(resolve => setTimeout(resolve, 5000));
             }

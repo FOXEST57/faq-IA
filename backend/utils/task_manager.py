@@ -65,7 +65,8 @@ class TaskManager:
                         progress=100,
                         result=result,
                         completed_at=datetime.now(),
-                        message='Tâche terminée avec succès')
+                        message='Tâche terminée avec succès',
+                        keep_until=datetime.now().timestamp() + 300)  # Garder 5 minutes
 
     def fail_task(self, task_id: str, error: str):
         """Marque une tâche comme échouée"""
@@ -73,7 +74,8 @@ class TaskManager:
                         status='failed',
                         error=error,
                         completed_at=datetime.now(),
-                        message=f'Tâche échouée: {error}')
+                        message=f'Tâche échouée: {error}',
+                        keep_until=datetime.now().timestamp() + 300)  # Garder 5 minutes
 
     def cleanup_old_tasks(self, max_age_hours: int = 24):
         """Nettoie les anciennes tâches"""
