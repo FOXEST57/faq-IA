@@ -175,29 +175,37 @@ def admin_ia_generation():
 # Fonction pour exécuter la génération en arrière-plan
 def _generate_faq_background(task_id: str, pdf_path: str, pdf_filename: str):
     """Fonction pour générer les FAQ en arrière-plan"""
+    from app import app  # Import local pour éviter les imports circulaires
+
     try:
-        with current_app.app_context():
+        with app.app_context():  # Créer un contexte d'application Flask
             # Démarrer la tâche
             task_manager.start_task(task_id)
             task_manager.update_task(task_id, progress=10, message="Initialisation du service IA...")
+
+            current_app.logger.info(f"Début génération background pour tâche {task_id}")
 
             # Initialiser le service RAG
             rag_service = OllamaRAGService()
 
             if not rag_service.check_ollama_connection():
+                current_app.logger.error("Ollama non disponible")
                 task_manager.fail_task(task_id, "Service IA non disponible")
                 return
 
             task_manager.update_task(task_id, progress=20, message="Analyse du document PDF...")
+            current_app.logger.info(f"Analyse du PDF: {pdf_path}")
 
             # Générer les FAQ
             generated_faqs = rag_service.process_pdf_to_faq(pdf_path)
 
             if not generated_faqs:
+                current_app.logger.warning("Aucune FAQ générée")
                 task_manager.fail_task(task_id, "Aucune FAQ générée à partir du document")
                 return
 
             task_manager.update_task(task_id, progress=80, message="Sauvegarde des FAQ...")
+            current_app.logger.info(f"Sauvegarde de {len(generated_faqs)} FAQ")
 
             # Sauvegarder les FAQ
             saved_count = 0
@@ -212,6 +220,7 @@ def _generate_faq_background(task_id: str, pdf_path: str, pdf_filename: str):
                     saved_count += 1
 
             db.session.commit()
+            current_app.logger.info(f"FAQ sauvegardées avec succès: {saved_count}")
 
             # Terminer la tâche
             task_manager.complete_task(task_id, {
@@ -221,6 +230,7 @@ def _generate_faq_background(task_id: str, pdf_path: str, pdf_filename: str):
             })
 
     except Exception as e:
+        current_app.logger.error(f"Erreur dans génération background: {e}", exc_info=True)
         task_manager.fail_task(task_id, str(e))
 
 # Route API pour lancer la génération asynchrone
