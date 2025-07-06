@@ -240,7 +240,7 @@
                                     {% for page in stats.get('popular_pages', []) %}
                                     <tr>
                                         <td><code>{{ page.url }}</code></td>
-                                        <td><span class="badge badge-primary">{{ page.visits }}</span></td>
+                                        <td><span class="badge bg-primary text-white">{{ page.visits }}</span></td>
                                         <td>
                                             {% set percentage = (page.visits / stats.get('total_visits', 1) * 100) %}
                                             <div class="progress" style="height: 20px;">
