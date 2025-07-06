@@ -1,6 +1,6 @@
 # Ajout d'un blueprint Flask pour l'upload et la gestion des PDF (upload et listing).
 
-from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session, current_app
+from flask import Blueprint, request, jsonify, render_template, redirect, url_for, flash, session, current_app, send_from_directory
 import os
 from werkzeug.utils import secure_filename
 from models import db, PDFDocument, FAQ
@@ -310,3 +310,19 @@ def api_process_faq():
         'success': False,
         'message': 'Cette route est dépréciée. Utilisez /api/ia/start-generation'
     }), 410
+
+# Route pour servir les fichiers PDF uploadés
+@pdf_bp.route('/uploads/<filename>')
+def serve_pdf(filename):
+    """Servir les fichiers PDF uploadés"""
+    try:
+        # Vérifier que le fichier existe en base de données
+        pdf_doc = PDFDocument.query.filter_by(filename=filename).first()
+        if not pdf_doc:
+            return "Fichier non trouvé", 404
+
+        # Servir le fichier depuis le dossier uploads
+        return send_from_directory(UPLOAD_FOLDER, filename, as_attachment=False)
+    except Exception as e:
+        current_app.logger.error(f"Erreur lors du service du PDF {filename}: {e}")
+        return "Erreur lors du chargement du fichier", 500
