@@ -86,18 +86,20 @@ class OllamaRAGService:
         if not self.check_ollama_connection():
             raise Exception("Ollama n'est pas accessible")
 
-        # Prompt simplifié pour phi3:mini
-        prompt = f"""Generate 3 FAQ questions and answers from this text about training courses.
+        # Prompt en français pour générer des FAQ en français
+        prompt = f"""Génère 3 questions-réponses de FAQ à partir de ce texte sur des formations.
 
-Text: {text[:1500]}
+IMPORTANT: Réponds UNIQUEMENT en français.
 
-Format your response as JSON array:
+Texte: {text[:1500]}
+
+Formate ta réponse comme un tableau JSON en français:
 [
-  {{"question": "What is...?", "answer": "This is..."}},
-  {{"question": "How to...?", "answer": "You can..."}}
+  {{"question": "Qu'est-ce que...?", "answer": "Il s'agit de..."}},
+  {{"question": "Comment faire pour...?", "answer": "Vous pouvez..."}}
 ]
 
-Only return valid JSON, no other text."""
+Retourne seulement du JSON valide, aucun autre texte. Les questions et réponses doivent être en français."""
 
         try:
             response = requests.post(
