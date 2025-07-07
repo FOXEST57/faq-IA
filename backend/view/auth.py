@@ -13,7 +13,7 @@ def admin_required(f):
     def decorated_function(*args, **kwargs):
         if not session.get('user_id') or not session.get('is_admin'):
             flash("Accès réservé aux administrateurs.", "danger")
-            return redirect('/login')
+            return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated_function
 
