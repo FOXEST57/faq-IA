@@ -180,39 +180,39 @@
                 <a class="nav-link" href="{{ url_for('faq.faq_list') }}">
                     <i class="fas fa-question-circle me-1"></i>FAQs
                 </a>
-                <a class="nav-link" href="/contact">
+                <a class="nav-link" href="{{ url_for('main.contact') }}">
                     <i class="fas fa-envelope me-1"></i>Contact
                 </a>
                 {% if session.user_id %}
-                <a class="nav-link" href="/api/faq">
+                <a class="nav-link" href="{{ url_for('faq.api_faq') }}">
                     <i class="fas fa-code me-1"></i>API
                 </a>
-                <a class="nav-link" href="/admin/dashboard">
+                <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">
                     <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                 </a>
-                <a class="nav-link" href="/admin/faqs">
+                <a class="nav-link" href="{{ url_for('faq.admin_faq_list') }}">
                     <i class="fas fa-list me-1"></i>FAQ Admin
                 </a>
-                <a class="nav-link" href="/admin/pdfs">
+                <a class="nav-link" href="{{ url_for('pdf.admin_pdf_list') }}">
                     <i class="fas fa-file-pdf me-1"></i>PDF
                 </a>
-                <a class="nav-link" href="/admin/ia/generation">
+                <a class="nav-link" href="{{ url_for('pdf.admin_ia_generation') }}">
                     <i class="fas fa-magic me-1"></i>IA
                 </a>
-                <a class="nav-link" href="/admin/analytics">
+                <a class="nav-link" href="{{ url_for('analytics.admin_analytics') }}">
                     <i class="fas fa-chart-bar me-1"></i>Analytics
                 </a>
-                <a class="nav-link" href="/admin/logs">
+                <a class="nav-link" href="{{ url_for('admin.admin_logs') }}">
                     <i class="fas fa-chart-line me-1"></i>Logs
                 </a>
-                <a class="nav-link" href="/admin/users">
+                <a class="nav-link" href="{{ url_for('admin.admin_users') }}">
                     <i class="fas fa-users me-1"></i>Utilisateurs
                 </a>
-                <a class="nav-link" href="/logout">
+                <a class="nav-link" href="{{ url_for('auth.logout') }}">
                     <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
                 </a>
                 {% else %}
-                <a class="nav-link" href="/login">
+                <a class="nav-link" href="{{ url_for('auth.login') }}">
                     <i class="fas fa-sign-in-alt me-1"></i>Connexion
                 </a>
                 {% endif %}
