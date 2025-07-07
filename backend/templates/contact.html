@@ -13,173 +13,34 @@
 
             <div class="p-4">
                 {% if success %}
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="fas fa-check-circle me-2"></i>
-                        <strong>Merci {{ name }} !</strong> Votre message a été envoyé avec succès. Nous vous répondrons dans les plus brefs délais.
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+                <div class="alert alert-success">
+                    <strong>Merci {% if name %}{{ name }}{% endif %} !</strong> Votre message a été envoyé avec succès.
+                </div>
                 {% endif %}
 
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                <div class="row">
-                    <!-- Formulaire de contact -->
-                    <div class="col-md-8">
-                        <form method="POST" action="{{ url_for('main.contact') }}" class="contact-form">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="name" class="form-label">
-                                        <i class="fas fa-user me-1 text-primary"></i>Nom complet *
-                                    </label>
-                                    <input type="text" class="form-control" id="name" name="name" required placeholder="Votre nom et prénom">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="email" class="form-label">
-                                        <i class="fas fa-envelope me-1 text-primary"></i>Adresse email *
-                                    </label>
-                                    <input type="email" class="form-control" id="email" name="email" required placeholder="votre.email@exemple.com">
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="subject" class="form-label">
-                                    <i class="fas fa-tag me-1 text-primary"></i>Sujet
-                                </label>
-                                <select class="form-select" id="subject" name="subject">
-                                    <option value="">Sélectionnez un sujet</option>
-                                    <option value="question-generale">Question générale</option>
-                                    <option value="probleme-technique">Problème technique</option>
-                                    <option value="suggestion">Suggestion d'amélioration</option>
-                                    <option value="partenariat">Partenariat</option>
-                                    <option value="autre">Autre</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="message" class="form-label">
-                                    <i class="fas fa-comment-dots me-1 text-primary"></i>Message *
-                                </label>
-                                <textarea class="form-control" id="message" name="message" rows="6" required placeholder="Décrivez votre demande en détail..."></textarea>
-                                <div class="form-text">Minimum 10 caractères</div>
-                            </div>
-
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                <button type="reset" class="btn btn-outline-secondary me-2">
-                                    <i class="fas fa-redo me-1"></i>Effacer
-                                </button>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-paper-plane me-1"></i>Envoyer le message
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Informations de contact -->
-                    <div class="col-md-4">
-                        <div class="contact-info">
-                            <h5 class="mb-3">
-                                <i class="fas fa-info-circle me-2 text-primary"></i>Informations
-                            </h5>
-
-                            <div class="info-item mb-3">
-                                <div class="d-flex align-items-start">
-                                    <i class="fas fa-clock text-primary me-2 mt-1"></i>
-                                    <div>
-                                        <strong>Temps de réponse</strong>
-                                        <p class="mb-0 text-muted small">Nous répondons généralement sous 24h</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="info-item mb-3">
-                                <div class="d-flex align-items-start">
-                                    <i class="fas fa-robot text-primary me-2 mt-1"></i>
-                                    <div>
-                                        <strong>FAQ Intelligente</strong>
-                                        <p class="mb-0 text-muted small">Consultez d'abord notre FAQ automatisée</p>
-                                        <a href="{{ url_for('faq.faq_list') }}" class="btn btn-sm btn-outline-primary mt-1">
-                                            Voir la FAQ
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="info-item mb-3">
-                                <div class="d-flex align-items-start">
-                                    <i class="fas fa-shield-alt text-primary me-2 mt-1"></i>
-                                    <div>
-                                        <strong>Confidentialité</strong>
-                                        <p class="mb-0 text-muted small">Vos données sont protégées et ne seront jamais partagées</p>
-                                    </div>
-                                </div>
-                            </div>
+                <form method="POST" action="{{ url_for('main.contact') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="name" class="form-label">Nom complet *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email *</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
                         </div>
                     </div>
-                </div>
+
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Message *</label>
+                        <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Envoyer
+                    </button>
+                </form>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    .contact-form .form-control,
-    .contact-form .form-select {
-        border: 2px solid #e2e8f0;
-        border-radius: 8px;
-        padding: 0.75rem 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .contact-form .form-control:focus,
-    .contact-form .form-select:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
-        transform: translateY(-2px);
-    }
-
-    .contact-form .form-label {
-        font-weight: 600;
-        color: var(--text-dark);
-        margin-bottom: 0.5rem;
-    }
-
-    .contact-info {
-        background: var(--secondary-color);
-        border-radius: 10px;
-        padding: 1.5rem;
-    }
-
-    .info-item {
-        padding: 1rem;
-        background: white;
-        border-radius: 8px;
-        border-left: 4px solid var(--primary-color);
-    }
-
-    .contact-form textarea {
-        resize: vertical;
-        min-height: 120px;
-    }
-
-    .btn {
-        border-radius: 8px;
-        padding: 0.5rem 1.5rem;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-
-    .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-</style>
 {% endblock %}
