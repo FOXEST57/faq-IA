@@ -167,6 +167,56 @@
             font-size: 0.875rem;
             color: #64748b;
         }
+
+        /* Styles pour le menu hamburger */
+        .navbar-toggler {
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            background: rgba(79, 70, 229, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-toggler:hover {
+            background: rgba(79, 70, 229, 0.2);
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: 0 0 0 0.2rem rgba(79, 70, 229, 0.25);
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%2879, 70, 229, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+            width: 1.5em;
+            height: 1.5em;
+        }
+
+        /* Animation du menu collapsible */
+        .navbar-collapse {
+            transition: all 0.3s ease-in-out;
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar-nav {
+                background: rgba(255, 255, 255, 0.98);
+                border-radius: 10px;
+                padding: 1rem;
+                margin-top: 1rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+
+            .nav-link {
+                padding: 0.75rem 1rem !important;
+                margin: 0.25rem 0;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+            }
+
+            .nav-link:hover {
+                background: var(--secondary-color);
+                transform: translateX(5px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -176,46 +226,55 @@
                 <i class="fas fa-robot text-primary me-2"></i>
                 <strong>FAQ IA</strong>
             </a>
-            <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="{{ url_for('faq.faq_list') }}">
-                    <i class="fas fa-question-circle me-1"></i>FAQs
-                </a>
-                <a class="nav-link" href="{{ url_for('main.contact') }}">
-                    <i class="fas fa-envelope me-1"></i>Contact
-                </a>
-                {% if session.user_id %}
-                <a class="nav-link" href="{{ url_for('faq.get_faqs') }}">
-                    <i class="fas fa-code me-1"></i>API
-                </a>
-                <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">
-                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                </a>
-                <a class="nav-link" href="{{ url_for('faq.admin_faq_list') }}">
-                    <i class="fas fa-list me-1"></i>FAQ Admin
-                </a>
-                <a class="nav-link" href="{{ url_for('pdf.admin_pdf_list') }}">
-                    <i class="fas fa-file-pdf me-1"></i>PDF
-                </a>
-                <a class="nav-link" href="{{ url_for('pdf.admin_ia_generation') }}">
-                    <i class="fas fa-magic me-1"></i>IA
-                </a>
-                <a class="nav-link" href="{{ url_for('analytics.admin_analytics_dashboard') }}">
-                    <i class="fas fa-chart-bar me-1"></i>Analytics
-                </a>
-                <a class="nav-link" href="{{ url_for('admin.admin_logs') }}">
-                    <i class="fas fa-chart-line me-1"></i>Logs
-                </a>
-                <a class="nav-link" href="{{ url_for('admin.admin_users') }}">
-                    <i class="fas fa-users me-1"></i>Utilisateurs
-                </a>
-                <a class="nav-link" href="{{ url_for('auth.logout') }}">
-                    <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
-                </a>
-                {% else %}
-                <a class="nav-link" href="{{ url_for('auth.login') }}">
-                    <i class="fas fa-sign-in-alt me-1"></i>Connexion
-                </a>
-                {% endif %}
+
+            <!-- Bouton hamburger pour mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Menu collapsible -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="{{ url_for('faq.faq_list') }}">
+                        <i class="fas fa-question-circle me-1"></i>FAQs
+                    </a>
+                    <a class="nav-link" href="{{ url_for('main.contact') }}">
+                        <i class="fas fa-envelope me-1"></i>Contact
+                    </a>
+                    {% if session.user_id %}
+                    <a class="nav-link" href="{{ url_for('faq.get_faqs') }}">
+                        <i class="fas fa-code me-1"></i>API
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin.admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                    </a>
+                    <a class="nav-link" href="{{ url_for('faq.admin_faq_list') }}">
+                        <i class="fas fa-list me-1"></i>FAQ Admin
+                    </a>
+                    <a class="nav-link" href="{{ url_for('pdf.admin_pdf_list') }}">
+                        <i class="fas fa-file-pdf me-1"></i>PDF
+                    </a>
+                    <a class="nav-link" href="{{ url_for('pdf.admin_ia_generation') }}">
+                        <i class="fas fa-magic me-1"></i>IA
+                    </a>
+                    <a class="nav-link" href="{{ url_for('analytics.admin_analytics_dashboard') }}">
+                        <i class="fas fa-chart-bar me-1"></i>Analytics
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin.admin_logs') }}">
+                        <i class="fas fa-chart-line me-1"></i>Logs
+                    </a>
+                    <a class="nav-link" href="{{ url_for('admin.admin_users') }}">
+                        <i class="fas fa-users me-1"></i>Utilisateurs
+                    </a>
+                    <a class="nav-link" href="{{ url_for('auth.logout') }}">
+                        <i class="fas fa-sign-out-alt me-1"></i>Déconnexion
+                    </a>
+                    {% else %}
+                    <a class="nav-link" href="{{ url_for('auth.login') }}">
+                        <i class="fas fa-sign-in-alt me-1"></i>Connexion
+                    </a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </nav>
