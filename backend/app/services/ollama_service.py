@@ -1,54 +1,29 @@
-import requests
-import json
+import ollama
 
 class OllamaService:
-    def __init__(self, ollama_base_url="http://localhost:11434"):
-        self.ollama_base_url = ollama_base_url
+    def __init__(self, model_name="mistral:7b-instruct-v0.3-fp16"):
+        self.model_name = model_name
 
-    def generate_qa_from_text(self, text):
-        print("generate_qa_from_text:", text)  # Add this line
-        prompt = f"""Given the following PDF, extract 10 distinct questions and their corresponding answers. Format the output as a JSON array of objects, where each object has 'question' and 'answer' keys. Ensure the questions and answers are directly derivable from the text provided.
-
-Text: {text}
-
-JSON Output:"""
-        
-        payload = {
-            "model": "mistral:7b-instruct-v0.3-fp16",
-            "prompt": prompt,
-            "stream": False
-        }
-        
+    def generate_faq_batch(self, text_chunk, num_faqs_per_chunk):
+        prompt = f"""
+        Generate exactly {num_faqs_per_chunk} FAQ questions and answers based on the following text.
+        Format each FAQ strictly as: "Q: question here\nA: answer here\n\n"
+        Text: {text_chunk}
+        """
         try:
-            response = requests.post(f"{self.ollama_base_url}/api/generate", json=payload)
-            response.raise_for_status()  # Raise an exception for HTTP errors
-            
-            response_data = response.json()
-            generated_text = response_data.get("response", "")
-            
-            # Attempt to parse the generated text as JSON
-            try:
-                qa_pairs = json.loads(generated_text)
-                print("Generated QA Pairs:", qa_pairs)
-                if not isinstance(qa_pairs, list):
-                    raise ValueError("Expected a JSON array.")
-                return qa_pairs
-            except json.JSONDecodeError:
-                print(f"Warning: Could not decode JSON from Ollama response: {generated_text}")
-                return []
+            response = ollama.generate(
+                model=self.model_name,
+                prompt=prompt,
+                options={'temperature': 0.2, 'num_predict': 300}
+            )
+            return response['response']
+        except Exception as e:
+            print(f"Error generating FAQ batch with Ollama: {e}")
+            return None
 
-        except requests.exceptions.RequestException as e:
-            print(f"Error communicating with Ollama: {e}")
-            return []
-
-    def parse_ollama_response(self, response_text):
-        # This method might be used if the direct JSON parsing in generate_qa_from_text isn't sufficient
-        # For now, generate_qa_from_text attempts direct JSON parsing.
+    def check_ollama_status(self):
         try:
-            qa_pairs = json.loads(response_text)
-            if not isinstance(qa_pairs, list):
-                raise ValueError("Expected a JSON array.")
-            return qa_pairs
-        except json.JSONDecodeError:
-            print(f"Warning: Could not decode JSON from Ollama response: {response_text}")
-            return []
+            ollama.list()
+            return True
+        except:
+            return False

@@ -1,8 +1,7 @@
-from flask_sqlalchemy import SQLAlchemy
 
 # Instance unique de SQLAlchemy pour toute l'application
 
-db = SQLAlchemy()
+from ..app import db
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -10,14 +9,19 @@ class User(db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=True)
 
+from datetime import datetime, timezone
+
 class FAQ(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     question = db.Column(db.Text, nullable=False)
     answer = db.Column(db.Text, nullable=False)
-    source = db.Column(db.String(20), nullable=False)  # 'manuel' ou 'ia'
-    category = db.Column(db.String(50), nullable=False, default='general')
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    updated_at = db.Column(db.DateTime, onupdate=db.func.now())
+    source = db.Column(db.String(255), default='Unknown')
+    category = db.Column(db.String(255), default='General')
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return f"<FAQ {self.id}: {self.question[:50]}...>"
 
 class PDFDocument(db.Model):
     id = db.Column(db.Integer, primary_key=True)

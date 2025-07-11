@@ -1,81 +1,90 @@
-# Ajout d'un blueprint Flask pour l'upload et la gestion des PDF (upload et listing).
-
 from flask import Blueprint, request, jsonify
-import os
-from werkzeug.utils import secure_filename
-from models import db, PDFDocument
-# import fitz  # PyMuPDF pour l'extraction de texte
+import PyPDF2
+from io import BytesIO
+from concurrent.futures import ThreadPoolExecutor
+from backend.app.services.ollama_service import OllamaService # Changed to absolute import
 
-# Création d'un blueprint Flask pour la gestion des PDF
-pdf_bp = Blueprint('pdf', __name__)
-# Définition du dossier où seront stockés les fichiers uploadés
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), '../uploads')
-# Définition des extensions autorisées (ici uniquement PDF)
-ALLOWED_EXTENSIONS = {'pdf'}
+pdf_bp = Blueprint('pdf', __name__, url_prefix='/api/pdf')
+ollama_service = OllamaService() # Initialize OllamaService
 
-# Fonction utilitaire pour vérifier l'extension du fichier
-def allowed_file(filename):
-    # Vérifie que le nom contient un point et que l'extension est dans la liste autorisée
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def extract_text_from_pdf(uploaded_file_stream):
+    try:
+        reader = PyPDF2.PdfReader(BytesIO(uploaded_file_stream.read()))
+        text = ""
+        for page in range(len(reader.pages)):
+            page_text = reader.pages[page].extract_text()
+            if page_text:
+                text += page_text + "\n"
+        return text[:6000]  # Limit to 6000 characters
+    except Exception as e:
+        print(f"Error extracting text from PDF: {e}")
+        return None
 
-# Route pour uploader un fichier PDF
-@pdf_bp.route('/api/pdf/upload', methods=['POST'])
-def upload_pdf():
-    # Vérifie qu'un fichier a bien été envoyé dans la requête
-    if 'file' not in request.files:
-        return jsonify({'error': 'Aucun fichier envoyé.'}), 400
-    file = request.files['file']
-    # Vérifie que le nom du fichier n'est pas vide
-    if file.filename == '':
-        return jsonify({'error': 'Nom de fichier vide.'}), 400
-    # Vérifie que le fichier existe et que son extension est autorisée
-    if file and allowed_file(file.filename):
-        # Sécurise le nom du fichier pour éviter les problèmes de chemin
-        filename = secure_filename(file.filename)
-        # Sauvegarde le fichier dans le dossier UPLOAD_FOLDER
-        file.save(os.path.join(UPLOAD_FOLDER, filename))
-        # Récupère une éventuelle description envoyée dans le formulaire
-        description = request.form.get('description', '')
-        # Crée une nouvelle entrée PDFDocument en base de données
-        pdf_doc = PDFDocument(filename=filename, description=description)
-        # Ajoute l'entrée en base de données et valide la transaction
-        db.session.add(pdf_doc)
-        db.session.commit()
-        # Retourne une réponse JSON avec un message de succès et l'id du document
-        return jsonify({'message': 'Fichier uploadé.', 'id': pdf_doc.id, 'filename': filename}), 201
+@pdf_bp.route('/upload-and-generate', methods=['POST'])
+def upload_and_generate_faqs():
+    if 'pdf_file' not in request.files:
+        return jsonify(error="No PDF file provided"), 400
+    
+    pdf_file = request.files['pdf_file']
+    num_faqs_to_generate = int(request.form.get('num_faqs', 5))
+
+    pdf_text = extract_text_from_pdf(pdf_file)
+    if pdf_text is None:
+        return jsonify(error="Failed to extract text from PDF"), 500
+
+    if not ollama_service.check_ollama_status():
+        return jsonify(error="Ollama server is not running"), 503
+
+    generated_faqs_list = []
+    raw_outputs = []
+    futures = []
+
+    num_workers = min(num_faqs_to_generate, 5) # Cap workers
+    faqs_per_worker = [num_faqs_to_generate // num_workers] * num_workers
+    for i in range(num_faqs_to_generate % num_workers):
+        faqs_per_worker[i] += 1
+
+    with ThreadPoolExecutor(max_workers=num_workers) as executor:
+        for num_faqs in faqs_per_worker:
+            if num_faqs > 0:
+                future = executor.submit(ollama_service.generate_faq_batch, pdf_text, num_faqs)
+                futures.append(future)
+        
+        for future in futures:
+            faq_output = future.result()
+            if faq_output:
+                raw_outputs.append(faq_output)
+                parsed_faqs = parse_faqs(faq_output, 100) # Parse up to 100, will be trimmed later
+                generated_faqs_list.extend(parsed_faqs)
+
+    final_faqs = generated_faqs_list[:num_faqs_to_generate]
+
+    if final_faqs:
+        return jsonify({
+            "message": "FAQs generated successfully",
+            "faqs": final_faqs,
+            "raw_output": "\n---\n".join(raw_outputs)
+        })
     else:
-        # Si le fichier n'est pas autorisé, retourne une erreur
-        return jsonify({'error': 'Format de fichier non autorisé.'}), 400
+        return jsonify(error="Failed to generate FAQs"), 500
 
-# Route pour lister les PDF uploadés
-@pdf_bp.route('/api/pdf', methods=['GET'])
-def list_pdfs():
-    # Récupère tous les documents PDF enregistrés en base
-    pdfs = PDFDocument.query.all()
-    # Retourne la liste des PDF sous forme de JSON
-    return jsonify([
-        {
-            'id': pdf.id,
-            'filename': pdf.filename,
-            'upload_date': str(pdf.upload_date) if pdf.upload_date else None,
-            'description': pdf.description
-        } for pdf in pdfs
-    ])
-
-# Route pour extraire le texte d'un PDF par son id
-@pdf_bp.route('/api/pdf/extract/<int:pdf_id>', methods=['GET'])
-def extract_pdf_text(pdf_id):
-    # Recherche le document PDF en base
-    pdf_doc = PDFDocument.query.get_or_404(pdf_id)
-    # Construit le chemin complet du fichier PDF
-    pdf_path = os.path.join(UPLOAD_FOLDER, pdf_doc.filename)
-    # Vérifie que le fichier existe bien sur le disque
-    if not os.path.exists(pdf_path):
-        return jsonify({'error': 'Fichier PDF introuvable sur le serveur.'}), 404
-    # Ouvre le PDF et extrait le texte de chaque page
-    text = ""
-    with fitz.open(pdf_path) as doc:
-        for page in doc:
-            text += page.get_text()
-    # Retourne le texte extrait sous forme de JSON
-    return jsonify({'id': pdf_id, 'filename': pdf_doc.filename, 'text': text})
+def parse_faqs(faq_text, num_faqs_expected):
+    entries = []
+    current_q = None
+    current_a = None
+    
+    lines = faq_text.split('\n')
+    for line in lines:
+        line = line.strip()
+        if line.startswith('Q:'):
+            if current_q is not None and current_a is not None:
+                entries.append({"question": current_q, "answer": current_a, "approved": False})
+            current_q = line[2:].strip()
+            current_a = None
+        elif line.startswith('A:'):
+            current_a = line[2:].strip()
+    
+    if current_q and current_a:
+        entries.append({"question": current_q, "answer": current_a, "approved": False})
+    
+    return entries[:num_faqs_expected]
